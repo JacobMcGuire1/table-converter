@@ -17,29 +17,58 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var React = require("react");
 var MyTable = /** @class */ (function (_super) {
     __extends(MyTable, _super);
-    //table: String[][];
     function MyTable(props) {
-        return _super.call(this, props) || this;
-        //this.table = String[][];
+        var _this = _super.call(this, props) || this;
+        _this.addRow = _this.addRow.bind(_this);
+        _this.addCol = _this.addCol.bind(_this);
+        _this.state = { table: [], rows: 5, cols: 5 };
+        return _this;
+        //this.table = null;
+        //this.table = [];
     }
+    MyTable.prototype.testPopulateTable = function () {
+        for (var i = 0; i < this.state.rows; i++) {
+            var row = [];
+            for (var j = 0; j < this.state.cols; j++) {
+                row.push(React.createElement(Cell, { data: (i * j).toString() }));
+            }
+            this.state.table.push(row);
+        }
+        //this.table = newtable;
+    };
+    MyTable.prototype.addRow = function () {
+        this.setState({ table: [] });
+        this.setState({ rows: this.state.rows + 1 });
+    };
+    MyTable.prototype.addCol = function () {
+        this.setState({ table: [] });
+        this.setState({ cols: this.state.cols + 1 });
+    };
+    MyTable.prototype.drawTable = function () {
+        this.testPopulateTable();
+        return (React.createElement("table", null,
+            React.createElement("tbody", null, this.state.table.map(function (innerArray, i) { return (React.createElement("tr", { key: i }, innerArray.map(function (item, j) { return React.createElement("td", { key: (i + 1) * (j + 1) }, item); }))); }))));
+    };
     MyTable.prototype.render = function () {
         return (React.createElement("div", null,
-            React.createElement("h1", null, "test")));
+            React.createElement("h1", null, "Table:"),
+            React.createElement("button", { type: "button", onClick: this.addRow }, "Add Row"),
+            React.createElement("button", { type: "button", onClick: this.addCol }, "Add Column"),
+            this.drawTable()));
     };
     return MyTable;
 }(React.Component));
 exports.default = MyTable;
-/*type CardProps = {
-    title: string,
-    paragraph: string
-}
-
-export const Card = ({ title, paragraph }: CardProps) => <aside>
-    <h2>{title}</h2>
-    <p>
-        {paragraph}
-    </p>
-</aside>
-
-const el = <Card title="Welcome!" paragraph="To this example" />*/ 
+var Cell = /** @class */ (function (_super) {
+    __extends(Cell, _super);
+    function Cell(props) {
+        var _this = _super.call(this, props) || this;
+        _this.data = _this.props.data;
+        return _this;
+    }
+    Cell.prototype.render = function () {
+        return (React.createElement("div", null, this.data));
+    };
+    return Cell;
+}(React.Component));
 //# sourceMappingURL=MyTable.js.map
