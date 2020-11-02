@@ -15,17 +15,20 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 //import React from 'react'; // we need this to make JSX compile
 var React = require("react");
+function escapeLatex(str) {
+    str = str.split("\\").join("\\textbackslash");
+    str = str.split("&").join("\\&");
+    return str;
+}
 var MyTable = /** @class */ (function (_super) {
     __extends(MyTable, _super);
     function MyTable(props) {
         var _this = _super.call(this, props) || this;
-        _this.init = false;
         _this.addRow = _this.addRow.bind(_this);
         _this.addCol = _this.addCol.bind(_this);
         _this.state = { table: [], rows: 5, cols: 5 };
+        _this.testPopulateTable();
         return _this;
-        //this.table = null;
-        //this.table = [];
     }
     MyTable.prototype.testPopulateTable = function () {
         for (var i = 0; i < this.state.rows; i++) {
@@ -35,8 +38,6 @@ var MyTable = /** @class */ (function (_super) {
             }
             this.state.table.push(row);
         }
-        this.init = true;
-        //this.table = newtable;
     };
     MyTable.prototype.addRow = function () {
         this.setState({ rows: this.state.rows + 1 });
@@ -50,7 +51,6 @@ var MyTable = /** @class */ (function (_super) {
     };
     MyTable.prototype.addCol = function () {
         this.setState({ cols: this.state.cols + 1 });
-        //this.setState({ table: [] });
         var newtable = this.state.table.map(function (x) { return x; });
         for (var i = 0; i < this.state.rows; i++) {
             newtable[i].push("");
@@ -71,10 +71,11 @@ var MyTable = /** @class */ (function (_super) {
         var _loop_1 = function (i) {
             var row = this_1.state.table[i];
             var rowlatex = "";
-            row.forEach(function (x) { return rowlatex = rowlatex + x + " & "; });
+            row.forEach(function (x) { return rowlatex = rowlatex + escapeLatex(x) + " & "; }); /* Escapes & characters and backslashes */
             rowlatex = rowlatex.slice(0, -3);
             rowlatex = rowlatex + " \\\\";
             latextable.push(rowlatex);
+            console.log(rowlatex);
         };
         var this_1 = this;
         for (var i = 0; i < this.state.rows; i++) {
@@ -113,11 +114,7 @@ var MyTable = /** @class */ (function (_super) {
             cu2));
     };
     MyTable.prototype.drawTable = function () {
-        //alert("Drawing table!");
         var _this = this;
-        if (!this.init) {
-            this.testPopulateTable();
-        }
         return (React.createElement("div", null,
             React.createElement("table", null,
                 React.createElement("tbody", null, this.state.table.map(function (innerArray, i) { return (React.createElement("tr", { key: i }, innerArray.map(function (item, j) {

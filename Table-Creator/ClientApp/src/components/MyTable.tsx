@@ -11,15 +11,19 @@ type TableState = {
     cols: number;
 }
 
+function escapeLatex(str: string){
+    str = str.split("\\").join("\\textbackslash");
+    str = str.split("&").join("\\&");
+    return str;
+}
+
 class MyTable extends React.Component<Props, TableState> {
-    private init = false
     constructor(props: Props) {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [],rows: 5, cols: 5 };
-        //this.table = null;
-        //this.table = [];
+        this.state = { table: [], rows: 5, cols: 5 };
+        this.testPopulateTable();
     }
     private testPopulateTable() {
         for (let i = 0; i < this.state.rows; i++) {
@@ -29,12 +33,9 @@ class MyTable extends React.Component<Props, TableState> {
             }
             this.state.table.push(row)
         }
-        this.init = true;
-        //this.table = newtable;
     }
     private addRow() {
         this.setState({ rows: this.state.rows + 1 });
-
         let newtable = this.state.table.map((x) => x);
         let row: string[] = [];
         for (let j = 0; j < this.state.cols; j++) {
@@ -45,7 +46,6 @@ class MyTable extends React.Component<Props, TableState> {
     }
     private addCol() {
         this.setState({ cols: this.state.cols + 1 })
-        //this.setState({ table: [] });
         let newtable = this.state.table.map((x) => x);
         for (let i = 0; i < this.state.rows; i++) {
             newtable[i].push("");
@@ -69,12 +69,13 @@ class MyTable extends React.Component<Props, TableState> {
         for (let i = 0; i < this.state.rows; i++) {
             let row = this.state.table[i];
             let rowlatex = ""
-            row.forEach((x) => rowlatex = rowlatex + x + " & ")
+            row.forEach((x) => rowlatex = rowlatex + escapeLatex(x) + " & "); /* Escapes & characters and backslashes */ 
             rowlatex = rowlatex.slice(0, -3);
             rowlatex = rowlatex + " \\\\";
             latextable.push(rowlatex);
+            console.log(rowlatex);
         }
-
+        
         let bs = "\\";
         let cu1 = "{";
         let cu2 = "}";
@@ -92,13 +93,7 @@ class MyTable extends React.Component<Props, TableState> {
             </div>
             );
     }
-    private drawTable() {
-        //alert("Drawing table!");
-        
-        if (!this.init) {
-            this.testPopulateTable();
-        }
-        
+    private drawTable() {        
         return (
             <div>
                 <table>
@@ -118,7 +113,7 @@ class MyTable extends React.Component<Props, TableState> {
                     </tbody>
                 </table>
 
-                <br />
+                <br/>
                 LaTeX:
                 <br/>
                 {this.convertToLatex()}
@@ -136,6 +131,8 @@ class MyTable extends React.Component<Props, TableState> {
         );
     }
 }
+
+
 
 export default MyTable;
 
