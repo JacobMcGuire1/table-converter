@@ -18,8 +18,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react",
-    "inlineSourceMap": true,
-    "inlineSources": true
+    "sourceMap": true,
+    "inlineSources": true,
+    "sourceRoot": "${workspaceRoot}/ClientApp/src"
   },
   "include": [
     "src"
