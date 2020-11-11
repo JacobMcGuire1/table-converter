@@ -32,9 +32,6 @@ class TablePoint {
     //constructor(x: number, y: number);
     //constructor(p: string);
     constructor(x?: number, y?: number, p?: string) {
-        console.log(x);
-        console.log(y);
-        console.log(p);
         if (p === undefined) {
             if (x !== undefined) {
                 this.x = x!;
@@ -47,8 +44,6 @@ class TablePoint {
             let points = p!.split(" ");
             this.x = parseInt(points[0]);
             this.y = parseInt(points[1]);
-            console.log(this.x);
-            console.log(this.y);
         }
     }
     toString() {
@@ -174,40 +169,27 @@ class MyTable extends React.Component<Props, TableState> {
     private selectCell(p: TablePoint) {
         let setcopy = new Set(this.state.selectedcells);
         setcopy.add(p.toString());
-        console.log("Added an item: ");
-        console.log(setcopy);
-        this.setState({ selectedcells: setcopy });
-        
-    }
+        this.setState({ selectedcells: setcopy });    }
     private deselectCell(p: TablePoint) {
         let setcopy = new Set(this.state.selectedcells);
         //console.log(setcopy);
         setcopy.delete(p.toString());
-
-        console.log("Deleted an item: ");
-        console.log(setcopy);
         this.setState({ selectedcells: setcopy });
         //console.log(this.state.selectedcells);
     }
 
     //NEED TO DO CHECKS/VALIDATION HERE
     private mergeCells() {
-        console.log("TEST");
         let xmin = 1000;
         let ymin = 1000;
-
         let xmax = 0;
         let ymax = 0;
-        console.log(xmax);
 
-        let t = Array.from(this.state.selectedcells);
-        console.log(t);
-        t.forEach(
+        let selectedcells = Array.from(this.state.selectedcells);
+        let commonmerges = new Set<string>(); //The merges that the selectedcells are currently a part of.
+        selectedcells.forEach(
             (item) => {
                 let p = new TablePoint(undefined, undefined, item);
-
-                console.log("TEST");
-                console.log(p.toString());
                 if (p.x < xmin) {
                     xmin = p.x;
                 }
@@ -220,24 +202,53 @@ class MyTable extends React.Component<Props, TableState> {
                 if (p.y > ymax) {
                     ymax = p.y;
                 }
+                let mergeroot = this.cellIsMerged(p);
+                if (mergeroot !== "") {
+                    commonmerges.add(mergeroot);
+                }
             });
-        let root = new TablePoint(xmin, ymin);
-        let children = [];
-        for (let x = xmin; x <= xmax; x++) {
-            for (let y = ymin; y <= ymax; y++) {
-                let p = new TablePoint(x, y);
-                if (!p.equals(root)) {
-                    children.push(p.toString());
+        if (commonmerges.size !== 0) { //Select the cells from the contained merges then deletes those merges and calls the function again to incorporate them into the new merge.
+            let commonmergearray = Array.from(commonmerges);
+            commonmergearray.forEach(
+                (item) => {
+                    this.state.selectedcells.add(item);
+                    let children = this.state.mergedcells.get(item);
+                    children?.forEach(
+                        (child) => {
+                            this.state.selectedcells.add(child);
+                        })
+                    this.state.mergedcells.delete(item);
+                })
+            this.mergeCells();
+        } else {
+            let root = new TablePoint(xmin, ymin);
+            let children = [];
+            for (let x = xmin; x <= xmax; x++) {
+                for (let y = ymin; y <= ymax; y++) {
+                    let p = new TablePoint(x, y);
+                    if (!p.equals(root)) {
+                        children.push(p.toString());
+                    }
                 }
             }
+            //Need to deal with the current merges too.
+            let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
+            newmergedcells.set(root.toString(), children);
+            this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() }); //NEeed toi also deselect the cells themselves.------------------------------------------------------------------------
         }
-        //Need to deal with the current merges too.
-        let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
-        newmergedcells.set(root.toString(), children);
-        this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>()}); //NEeed toi also deselect the cells themselves.------------------------------------------------------------------------
     }
     private splitCells() {
-
+        let t = Array.from(this.state.selectedcells);
+        let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
+        t.forEach(
+            (item) => {
+                let p = new TablePoint(undefined, undefined, item);
+                let merge = this.cellIsMerged(p);
+                if (merge !== "") {
+                    newmergedcells.delete(merge);
+                }
+            });
+        this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
     }
     private convertToLatex() {
         let collatex = "|";
@@ -272,15 +283,16 @@ class MyTable extends React.Component<Props, TableState> {
             </div>
             );
     }
+    //Returns the root cell if the cell is part of a merge.
     private cellIsMerged(p: TablePoint) {
         let pointstr = p.toString();
-        let merged = false;
+        let merged = "";
         this.state.mergedcells.forEach((value: string[], key: string) => {
             if (pointstr === key) {
-                merged = true;
+                merged = key;
             }
             if (value.includes(pointstr)) {
-                merged = true;
+                merged = key;
             }
         });
         return merged;
@@ -293,31 +305,33 @@ class MyTable extends React.Component<Props, TableState> {
             let cells = this.state.mergedcells.get(p.toString());
             let cols = new Set<number>();
             let rows = new Set<number>();
+            cols.add(p.x);
+            rows.add(p.y);
             cells?.forEach(
                 (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
-                    cols.add(p.x);
-                    rows.add(p.y);
+                    let point = new TablePoint(undefined, undefined, item);
+                    cols.add(point.x);
+                    rows.add(point.y);
                 })
             width = 0;
             height = 0;
-            cols.forEach(
+            rows.forEach(
                 (item) => {
                     width += this.state.colwidths[item];
                 })
-            rows.forEach(
+            cols.forEach(
                 (item) => {
                     height += this.state.rowheights[item];
                 })
-            width += ((cols.size - 1) * this.state.dividerpixels);
-            height += ((rows.size  - 1) * this.state.dividerpixels);
+            width += ((rows.size - 1) * this.state.dividerpixels);
+            height += ((cols.size - 1) * this.state.dividerpixels);
         }
         return [width, height];
     }
     private drawCell(x: number, y: number, data: string) {
         let p = new TablePoint(x, y);
 
-        if (this.cellIsMerged(p)) {
+        if (this.cellIsMerged(p) !== "") {
             let dimensions = this.getMergeDetails(p);
             let width = dimensions[0];
             let height = dimensions[1];
@@ -372,14 +386,14 @@ class MyTable extends React.Component<Props, TableState> {
                     <tbody>
                         {this.state.table.map((innerArray, i) => (
                             <tr key={i}>
-                                {
+                                {/*
                                     innerArray.map(
                                         (item, j) =>
                                             <td key={i + "," + j}>
                                                 <Cell data={item} x={i} y={j} changeData={(p: TablePoint, data: string) => this.modifyCellData(p, data)} />
                                             </td>
                                     )
-                                }
+                                */}
                             </tr>
                         ))}
                     </tbody>
@@ -472,11 +486,9 @@ class SVGCell extends React.Component<SVGCellProps, SVGCellState> {
 
         
         if (!this.state.selected) {
-            //console.log("Selecting...");
             rect.style!.fill = "red";
             this.props.selectcell(this.props.p);
         } else {
-            //console.log("DeSelecting...");
             rect.style!.fill = "grey"; 
             this.props.deselectcell(this.props.p);
         }
@@ -494,7 +506,6 @@ class SVGCell extends React.Component<SVGCellProps, SVGCellState> {
         e.target.value = value;
     }
     private changeData2(e: React.FormEvent<HTMLDivElement>) {
-        //console.log(this.ref2!.current?.firstChild);
         let data = this.ref2!.current?.firstChild?.textContent;
         if (data != null) {
             this.props.changeData(this.props.p, data);
