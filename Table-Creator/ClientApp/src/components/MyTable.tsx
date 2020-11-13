@@ -1,6 +1,7 @@
 ﻿//import React from 'react'; // we need this to make JSX compile
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
+import './MyTable.css';
 
 type Props = {
     foo: string;
@@ -16,7 +17,8 @@ type TableState = {
     colwidths: number[];
     rowheights: number[];
     selectedcells: Set<string>;
-    mergedcells: Map<string, string[]>
+    mergedcells: Map<string, string[]>;
+    refdict: Map<string, React.RefObject<SVGCell>>; //Probably a better way to do this.
 }
 
 function escapeLatex(str: string){
@@ -59,14 +61,16 @@ class MyTable extends React.Component<Props, TableState> {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], rows: 5, cols: 5, mincellheight: 50, mincellwidth: 100, dividerpixels: 5, colwidths: [], rowheights: [], selectedcells: new Set<string>(), mergedcells: new Map<string, string[]>()};
+        this.state = { table: [], rows: 5, cols: 5, mincellheight: 40, mincellwidth: 50, dividerpixels: 5, colwidths: [], rowheights: [], selectedcells: new Set<string>(), mergedcells: new Map<string, string[]>(), refdict: new Map<string, React.RefObject<SVGCell>>()};
         this.testPopulateTable();
     }
     private testPopulateTable() {
         for (let i = 0; i < this.state.rows; i++) {
             let row:string[] = [];
             for (let j = 0; j < this.state.cols; j++) {
-                row.push((i * j).toString());
+                let p = new TablePoint(i, j);
+                row.push(p.toString());
+                this.state.refdict.set(p.toString(), React.createRef());
             }
             this.state.table.push(row)
         }
@@ -82,7 +86,9 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = this.state.table.map((x) => x);
         let row: string[] = [];
         for (let j = 0; j < this.state.cols; j++) {
-            row.push("");
+            let p = new TablePoint(this.state.rows, j);
+            this.state.refdict.set(p.toString(), React.createRef());
+            row.push(p.toString());
         }
         newtable.push(row);
 
@@ -95,7 +101,9 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ cols: this.state.cols + 1 })
         let newtable = this.state.table.map((x) => x);
         for (let i = 0; i < this.state.rows; i++) {
-            newtable[i].push("");
+            let p = new TablePoint(i, this.state.cols);
+            this.state.refdict.set(p.toString(), React.createRef());
+            newtable[i].push(p.toString());
         }
 
         let newcolwidths = this.state.colwidths.map((x) => x);
@@ -148,15 +156,27 @@ class MyTable extends React.Component<Props, TableState> {
         for (let i = 0; i < this.state.rows; i++) {
             let data = this.state.table[i][col];
             let lines = data.split("\n");
-            for (let j = 0; j < lines.length; j++) {
-                let width = this.checkTextSize(data)!.width * 1.75;
-                if (width > largestwidth) {
-                    largestwidth = width;
+
+            let p = new TablePoint(i, col);
+            let merge = this.cellIsMerged(p);
+            console.log(merge);
+            if (merge === "" || p.toString() === merge) { //checks if the data can be seen or is hidden by merge.
+                for (let j = 0; j < lines.length; j++) {
+                    let width = this.checkTextSize(data)!.width * 1.75;
+                    if (width > largestwidth) {
+                        largestwidth = width;
+                    }
                 }
+            } else {
+                console.log("yay");
             }
         }
         if (largestwidth < currentwidth) {
-            return largestwidth;
+            if (largestwidth < this.state.mincellwidth) {
+                return this.state.mincellwidth;
+            } else {
+                return largestwidth;
+            }
         } else {
             return -1;
         }
@@ -180,62 +200,98 @@ class MyTable extends React.Component<Props, TableState> {
 
     //NEED TO DO CHECKS/VALIDATION HERE
     private mergeCells() {
-        let xmin = 1000;
-        let ymin = 1000;
-        let xmax = 0;
-        let ymax = 0;
+        if (this.state.selectedcells.size > 1) {
+            let xmin = 1000;
+            let ymin = 1000;
+            let xmax = 0;
+            let ymax = 0;
 
-        let selectedcells = Array.from(this.state.selectedcells);
-        let commonmerges = new Set<string>(); //The merges that the selectedcells are currently a part of.
-        selectedcells.forEach(
-            (item) => {
-                let p = new TablePoint(undefined, undefined, item);
-                if (p.x < xmin) {
-                    xmin = p.x;
-                }
-                if (p.x > xmax) {
-                    xmax = p.x;
-                }
-                if (p.y < ymin) {
-                    ymin = p.y;
-                }
-                if (p.y > ymax) {
-                    ymax = p.y;
-                }
-                let mergeroot = this.cellIsMerged(p);
-                if (mergeroot !== "") {
-                    commonmerges.add(mergeroot);
-                }
-            });
-        if (commonmerges.size !== 0) { //Select the cells from the contained merges then deletes those merges and calls the function again to incorporate them into the new merge.
-            let commonmergearray = Array.from(commonmerges);
-            commonmergearray.forEach(
+            let selectedcells = Array.from(this.state.selectedcells);
+            let commonmerges = new Set<string>(); //The merges that the selectedcells are currently a part of.
+            selectedcells.forEach(
                 (item) => {
-                    this.state.selectedcells.add(item);
-                    let children = this.state.mergedcells.get(item);
-                    children?.forEach(
-                        (child) => {
-                            this.state.selectedcells.add(child);
-                        })
-                    this.state.mergedcells.delete(item);
-                })
-            this.mergeCells();
-        } else {
-            let root = new TablePoint(xmin, ymin);
-            let children = [];
-            for (let x = xmin; x <= xmax; x++) {
-                for (let y = ymin; y <= ymax; y++) {
-                    let p = new TablePoint(x, y);
-                    if (!p.equals(root)) {
-                        children.push(p.toString());
+                    let p = new TablePoint(undefined, undefined, item);
+                    if (p.x < xmin) {
+                        xmin = p.x;
+                    }
+                    if (p.x > xmax) {
+                        xmax = p.x;
+                    }
+                    if (p.y < ymin) {
+                        ymin = p.y;
+                    }
+                    if (p.y > ymax) {
+                        ymax = p.y;
+                    }
+                    let mergeroot = this.cellIsMerged(p);
+                    if (mergeroot !== "") {
+                        commonmerges.add(mergeroot);
+                    }
+                });
+            if (commonmerges.size !== 0) { //Select the cells from the contained merges then deletes those merges and calls the function again to incorporate them into the new merge.
+                let commonmergearray = Array.from(commonmerges);
+                commonmergearray.forEach(
+                    (item) => {
+                        this.state.selectedcells.add(item);
+                        let children = this.state.mergedcells.get(item);
+                        children?.forEach(
+                            (child) => {
+                                this.state.selectedcells.add(child);
+                            })
+                        this.state.mergedcells.delete(item);
+                    })
+                this.mergeCells();
+            } else {
+                let root = new TablePoint(xmin, ymin);
+                let children = [];
+                for (let x = xmin; x <= xmax; x++) {
+                    for (let y = ymin; y <= ymax; y++) {
+                        let p = new TablePoint(x, y);
+                        if (!p.equals(root)) {
+                            children.push(p.toString());
+                        }
                     }
                 }
+                //Need to deal with the current merges too.
+                let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
+                newmergedcells.set(root.toString(), children);
+
+                //Deselects the cell components.
+                let t = Array.from(this.state.selectedcells);
+                t.forEach(
+                    (item) => {
+                        let k = this.state.refdict.get(item)!.current;
+                        if (k !== null) {
+                            k!.deselectCell();
+                        }
+                    });
+
+                this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
+
+                this.minimiseAllColumnWidths();
+                //Adjust column widths.
+                
+                /*t.forEach(
+                    (item) => {
+                        let p = new TablePoint(undefined, undefined, item);
+                        let w = this.minimiseColWidth(p.y);
+                        if (w !== -1) {
+                            newcolwidths[p.y] = w;
+                        }
+                    });*/
+                
             }
-            //Need to deal with the current merges too.
-            let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
-            newmergedcells.set(root.toString(), children);
-            this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() }); //NEeed toi also deselect the cells themselves.------------------------------------------------------------------------
         }
+    }
+    private minimiseAllColumnWidths() {
+        let newcolwidths = this.state.colwidths.map((x) => x);
+        for (let i = 0; i < newcolwidths.length; i++) {
+            let newwidth = this.minimiseColWidth(i);
+            if (newwidth !== -1) {
+                newcolwidths[i] = newwidth;
+            }
+        }
+        this.setState({ colwidths: newcolwidths });
     }
     private splitCells() {
         let t = Array.from(this.state.selectedcells);
@@ -246,6 +302,10 @@ class MyTable extends React.Component<Props, TableState> {
                 let merge = this.cellIsMerged(p);
                 if (merge !== "") {
                     newmergedcells.delete(merge);
+                }
+                let k = this.state.refdict.get(item)!.current;
+                if (k !== null) {
+                    k!.deselectCell();
                 }
             });
         this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
@@ -338,7 +398,8 @@ class MyTable extends React.Component<Props, TableState> {
             if (width !== -1) {
                 return (
                     <SVGCell
-                        key={x.toString() + "," + y.toString()}
+                        ref={this.state.refdict.get(p.toString())}
+                        key={p.toString()}
                         data={data}
                         p={p}
                         xpixel={(this.state.colwidths.slice(0, y)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (y)) /*xpixel={y * (this.state.mincellwidth + 10) /*Need to make these 2 count the heights/widths.*/}
@@ -355,7 +416,8 @@ class MyTable extends React.Component<Props, TableState> {
         } else {
             return (
                 <SVGCell
-                    key={x.toString() + "," + y.toString()}
+                    ref={this.state.refdict.get(p.toString())}
+                    key={p.toString()}
                     data={data}
                     p={p}
                     xpixel={(this.state.colwidths.slice(0, y)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (y)) /*xpixel={y * (this.state.mincellwidth + 10) /*Need to make these 2 count the heights/widths.*/}
@@ -400,20 +462,21 @@ class MyTable extends React.Component<Props, TableState> {
                 </table>
 
                 <br/>
-                LaTeX:
-                <br/>
+                <h2>LaTeX</h2>
                 {this.convertToLatex()}
             </div>
             );
     }
     public render() {
         return (
-            <div>
-                <h1>Table:</h1>
-                <button type="button" onClick={() => this.addRow()}>Add Row</button>
-                <button type="button" onClick={() => this.addCol()}>Add Column</button>
-                <button type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
-                <button type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
+            <div className="table-div">
+                <h2>Table</h2>
+                <div className="table-buttons-div"><button type="button" onClick={() => this.addRow()}>Add Row</button>
+                    <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
+                    <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
+                    <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
+                </div>
+                
                 {this.drawTable()}
             </div>
         );
@@ -476,26 +539,30 @@ class SVGCell extends React.Component<SVGCellProps, SVGCellState> {
         this.ref2 = React.createRef()
         //this.state = { data: this.props.data };
     }
+    public deselectCell() {
+        if (this.state.selected) {
+            this.setState({ selected: false });
+            this.changeBackgroundColour("grey");
+        }
+    }
     private toggleEditMode() {
         this.setState({ editing: !this.state.editing });
     }
     private clickCell(e: React.MouseEvent<SVGGElement, MouseEvent>) { //Should check if can be selected.
-        let k = this.ref!;
-        let j = k.current!;
-        let rect = j.children[0] as React.SVGProps<SVGRectElement>;
-
-        
         if (!this.state.selected) {
-            rect.style!.fill = "red";
+            this.changeBackgroundColour("red");
             this.props.selectcell(this.props.p);
         } else {
-            rect.style!.fill = "grey"; 
+            this.changeBackgroundColour("grey"); 
             this.props.deselectcell(this.props.p);
         }
         this.setState({ selected: !this.state.selected });
-         
-        
-        
+    }
+    private changeBackgroundColour(colour: string) {
+        let k = this.ref!;
+        let j = k.current!;
+        let rect = j.children[0] as React.SVGProps<SVGRectElement>;
+        rect.style!.fill = colour;
     }
     private changeData(e: React.ChangeEvent<HTMLTextAreaElement>) {
         this.props.changeData(this.props.p, e.target.value);

@@ -1,0 +1,14 @@
+﻿body {
+}
+.table-div {
+    /*white-space: normal;*/
+    text-align: center;
+    /*word-break: break-all;*/
+}
+.table-buttons-div {
+    margin: 10px;
+}
+
+.table-buttons {
+    margin: 3px;
+}
