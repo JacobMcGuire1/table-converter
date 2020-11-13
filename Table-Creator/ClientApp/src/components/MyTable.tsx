@@ -56,6 +56,51 @@ class TablePoint {
     }
 }
 
+class CellDetails {
+    public p: TablePoint;
+    private hidden: boolean = false;
+    private editing: boolean = true;
+    private selected: boolean = false;
+    private mergeroot: string = "";
+    private data: string;
+    private width: number;
+    private height: number;
+    constructor(p: TablePoint, width: number, height: number) {
+        this.p = p;
+        this.data = p.toString();
+        this.width = width;
+        this.height = height;
+    }
+    public merge(p: TablePoint) {
+        this.mergeroot = p.toString();
+    }
+    public getWidth() {
+        if (this.mergeroot === this.p.toString() || this.mergeroot == "") {
+            let canvas = document.createElement('canvas'),
+                context = canvas.getContext('2d');
+            let lines = this.data.split("\n");
+            let largestwidth = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                let width = context?.measureText(lines[i])!.width! * 1.75;
+                if (width > largestwidth) {
+                    largestwidth = width;
+                }
+            }
+            return largestwidth;
+        } else {
+            return 0;
+        }
+        
+    }
+    public getHeight() {
+        let lines = this.data.split("\n");
+    }
+    public setData() {
+
+    }
+}
+
 class MyTable extends React.Component<Props, TableState> {
     constructor(props: Props) {
         super(props);
@@ -180,11 +225,6 @@ class MyTable extends React.Component<Props, TableState> {
         } else {
             return -1;
         }
-    }
-    private checkTextSize(text: string) {
-        var canvas = document.createElement('canvas'),
-            context = canvas.getContext('2d');
-        return context?.measureText(text);
     }
     private selectCell(p: TablePoint) {
         let setcopy = new Set(this.state.selectedcells);
