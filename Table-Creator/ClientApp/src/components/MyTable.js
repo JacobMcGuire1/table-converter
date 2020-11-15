@@ -272,6 +272,7 @@ var MyTable = /** @class */ (function (_super) {
         return selectedcells;
     };
     MyTable.prototype.mergeCells = function () {
+        var _this = this;
         var selectedcells = this.getSelectedCells();
         if (selectedcells.length <= 1)
             return;
@@ -293,8 +294,30 @@ var MyTable = /** @class */ (function (_super) {
             if (p.col > maxcol) {
                 maxcol = p.col;
             }
-            item.deselect();
         });
+        /*if (recurse) {
+            this.mergeCells();
+        }*/
+        /*selectedcells.forEach(
+            (item) => {
+                item.deselect();
+            });*/
+        /*let mergeroot = item.getMergeRoot();
+        if (mergeroot !== "") {
+            let rootpoint = new TablePoint(undefined, undefined, mergeroot);
+            let rootcell = this.state.table[rootpoint.row][rootpoint.col];
+            if (!rootcell.isSelected()) recurse = true;
+            rootcell.select();
+            let children = rootcell.getMergeChildren();
+            children.forEach(
+                (item2) => {
+                    let childpoint = new TablePoint(undefined, undefined, item2);
+                    let childcell = this.state.table[childpoint.row][childpoint.col];
+                    if (!childcell.isSelected()) recurse = true;
+                    childcell.select();
+                });
+        }*/
+        var recurse = false;
         var root = this.state.table[minrow][mincol];
         var children = [];
         for (var row = minrow; row <= maxrow; row++) {
@@ -302,14 +325,35 @@ var MyTable = /** @class */ (function (_super) {
                 var cell = this.state.table[row][col];
                 if (!cell.p.equals(root.p)) {
                     children.push(cell);
-                    cell.mergeAsChild(root.p.toString());
                 }
+                //The following code ensures that any other contained merges are incorporated into this merge.
+                if (!cell.isSelected())
+                    recurse = true;
+                cell.select();
+                var cellchildren = cell.getMergeChildren();
+                cellchildren.forEach(function (item2) {
+                    var childpoint = new TablePoint(undefined, undefined, item2);
+                    var childcell = _this.state.table[childpoint.row][childpoint.col];
+                    if (!childcell.isSelected())
+                        recurse = true;
+                    childcell.select();
+                });
             }
         }
-        var childrenstrings = children.map(function (x) { return x.p.toString(); });
-        root.mergeAsRoot(childrenstrings);
-        var newtable = this.state.table.map(function (x) { return x; });
-        this.setState({ table: newtable });
+        if (recurse) { //Recurses if any other merges need to be included.
+            this.mergeCells();
+        }
+        else {
+            root.deselect();
+            children.forEach(function (item) {
+                item.mergeAsChild(root.p.toString());
+                item.deselect();
+            });
+            var childrenstrings = children.map(function (x) { return x.p.toString(); });
+            root.mergeAsRoot(childrenstrings);
+            var newtable = this.state.table.map(function (x) { return x; });
+            this.setState({ table: newtable });
+        }
     };
     MyTable.prototype.splitCells = function () {
         var _this = this;
