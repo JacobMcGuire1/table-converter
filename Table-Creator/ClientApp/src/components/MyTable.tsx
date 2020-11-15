@@ -313,29 +313,6 @@ class MyTable extends React.Component<Props, TableState> {
                     maxcol = p.col;
                 }
             });
-        /*if (recurse) {
-            this.mergeCells();
-        }*/
-        /*selectedcells.forEach(
-            (item) => {
-                item.deselect();
-            });*/
-
-        /*let mergeroot = item.getMergeRoot();
-        if (mergeroot !== "") {
-            let rootpoint = new TablePoint(undefined, undefined, mergeroot);
-            let rootcell = this.state.table[rootpoint.row][rootpoint.col];
-            if (!rootcell.isSelected()) recurse = true;
-            rootcell.select();
-            let children = rootcell.getMergeChildren();
-            children.forEach(
-                (item2) => {
-                    let childpoint = new TablePoint(undefined, undefined, item2);
-                    let childcell = this.state.table[childpoint.row][childpoint.col];
-                    if (!childcell.isSelected()) recurse = true;
-                    childcell.select();
-                });
-        }*/
         let recurse = false;
         let root = this.state.table[minrow][mincol];
         let children = [];
