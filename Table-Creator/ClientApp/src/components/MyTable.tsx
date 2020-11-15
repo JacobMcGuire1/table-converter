@@ -61,14 +61,35 @@ class CellDetails {
         this.p = p;
         this.setData(p.toString());
     }
+    public isSelected() {
+        return this.selected;
+    }
     public select() {
         this.selected = true;
     }
     public deselect() {
         this.selected = false;
     }
-    public merge(p: TablePoint) {
-        this.mergeroot = p.toString();
+    public getMergeRoot() {
+        return this.mergeroot;
+    }
+    public getMergeChildren() {
+        return this.mergechildren;
+    }
+    public unMerge() {
+        this.mergeroot = "";
+        this.mergechildren = [];
+        this.hidden = false;
+    }
+    public mergeAsChild(root: string) {
+        this.mergeroot = root;
+        this.mergechildren = [];
+        this.hidden = true;
+    }
+    public mergeAsRoot(children: string[]) {
+        this.mergeroot = this.p.toString();
+        this.mergechildren = children;
+        this.hidden = false;
     }
     public enableEdit() {
         this.editing = true;
@@ -76,7 +97,7 @@ class CellDetails {
     public disableEdit() {
         this.editing = false;
     }
-    private getWidth(): number {
+    private getTextWidth(): number {
         if (this.isVisible()) {
             let canvas = document.createElement('canvas'),
                 context = canvas.getContext('2d');
@@ -97,14 +118,14 @@ class CellDetails {
     public getData(): string {
         return this.data;
     }
-    private getHeight(): number {
+    private getTextHeight(): number {
         let lines = this.data.split("\n");
         return this.height;
     }
     public setData(data: string) {
         this.data = data;
-        this.width = this.getWidth();
-        this.height = this.getHeight();
+        this.width = this.getTextWidth();
+        this.height = this.getTextHeight();
     }
     public copy(): CellDetails {
         return Object.assign({}, this);
@@ -112,7 +133,39 @@ class CellDetails {
     public isVisible() {
         return (this.mergeroot === this.p.toString()) || (this.mergeroot === "");
     }
-    public draw(xpixel: number, ypixel: number, width: number, height: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function) {
+    private calculateWidth(colwidths: number[], horizontaldividersize: number) {
+        if (this.mergeroot === this.p.toString()) {
+            let colset = new Set<number>();
+            colset.add(this.p.col);
+            this.mergechildren.forEach(
+                (item) => {
+                    let p = new TablePoint(undefined, undefined, item);
+                    colset.add(p.col);
+                });
+            let width = 0;
+            colset.forEach(x => width = colwidths[x] + width + horizontaldividersize);
+            width = width - horizontaldividersize;
+            return width;
+        }
+        return colwidths[this.p.col];
+    }
+    private calculateHeight(rowheights: number[], verticaldividersize: number) {
+        if (this.mergeroot === this.p.toString()) {
+            let rowset = new Set<number>();
+            rowset.add(this.p.row);
+            this.mergechildren.forEach(
+                (item) => {
+                    let p = new TablePoint(undefined, undefined, item);
+                    rowset.add(p.row);
+                });
+            let height = 0;
+            rowset.forEach(x => height = rowheights[x] + height + verticaldividersize);
+            height = height - verticaldividersize;
+            return height;
+        }
+        return rowheights[this.p.row];
+    }
+    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function) {
         if (this.isVisible()) {
             return (
                 <SVGCell
@@ -120,8 +173,8 @@ class CellDetails {
                     cell={this}
                     xpixel={xpixel}//{(this.state.colwidths.slice(0, y)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (y)) /*xpixel={y * (this.state.mincellwidth + 10) /*Need to make these 2 count the heights/widths.*/}
                     ypixel={ypixel}//{ x * (this.state.mincellheight + this.state.dividerpixels) }
-                    width={width}
-                    height={height}
+                    width={this.calculateWidth(colwidths, horizontaldividersize)}
+                    height={this.calculateHeight(rowheights, verticaldividersize)}
                     changeData={changeData}//{(p: TablePoint, data: string) => this.modifyCellData(p, data)}
                     selectcell={selectCell}//{(p: TablePoint) => this.selectCell(p)}
                     deselectcell={deSelectCell}// {(p: TablePoint) => this.deselectCell(p)}
@@ -222,7 +275,90 @@ class MyTable extends React.Component<Props, TableState> {
         cell.deselect();
         this.setState({ table: newtable });
     }
+    private getSelectedCells() {
+        let selectedcells = [];
+        for (let row = 0; row < this.getRowCount(); row++) {
+            for (let col = 0; col < this.getColCount(); col++) {
+                let cell = this.state.table[row][col];
+                if (cell.isSelected()) {
+                    selectedcells.push(cell);
+                }
+            }
+        }
+        return selectedcells;
+    }
+    private mergeCells() {
+        let selectedcells = this.getSelectedCells();
+        if (selectedcells.length <= 1) return;
 
+        let minrow = Infinity;
+        let mincol = Infinity;
+        let maxrow = 0;
+        let maxcol = 0;
+
+        selectedcells.forEach(
+            (item) => {
+                let p = item.p;
+                if (p.row < minrow) {
+                    minrow = p.row;
+                }
+                if (p.row > maxrow) {
+                    maxrow = p.row;
+                }
+                if (p.col < mincol) {
+                    mincol = p.col;
+                }
+                if (p.col > maxcol) {
+                    maxcol = p.col;
+                }
+                item.deselect();
+            });
+
+        let root = this.state.table[minrow][mincol];
+        let children = [];
+        for (let row = minrow; row <= maxrow; row++) {
+            for (let col = mincol; col <= maxcol; col++) {
+                let cell = this.state.table[row][col];
+                if (!cell.p.equals(root.p)) {
+                    children.push(cell);
+                    cell.mergeAsChild(root.p.toString());
+                }
+            }
+        }
+        let childrenstrings = children.map(x => x.p.toString());
+        root.mergeAsRoot(childrenstrings);
+
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+    private splitCells() {
+        let selectedcells = this.getSelectedCells();
+        if (selectedcells.length === 0) return;
+        let roots = new Set<string>();
+        selectedcells.forEach(
+            (item) => {
+                if (item.getMergeRoot() !== "") {
+                    roots.add(item.getMergeRoot());
+                }
+                item.deselect();
+            });
+        let rootsarray = Array.from(roots);
+        rootsarray.forEach(
+            (item) => {
+                let p = new TablePoint(undefined, undefined, item);
+                let cell = this.state.table[p.row][p.col];
+                let children = cell.getMergeChildren();
+                children.forEach(
+                    (childitem) => {
+                        let p2 = new TablePoint(undefined, undefined, childitem);
+                        let childcell = this.state.table[p2.row][p2.col];
+                        childcell.unMerge();
+                    });
+                cell.unMerge();
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
     //NEED TO DO CHECKS/VALIDATION HERE
     /*private mergeCells() {
         if (this.state.selectedcells.size > 1) {
@@ -413,8 +549,10 @@ class MyTable extends React.Component<Props, TableState> {
                                 cell.draw(
                                     (colwidths.slice(0, col)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (col)),
                                     row * (this.state.mincellheight + this.state.dividerpixels),
-                                    colwidths[col],
-                                    rowheights[row],
+                                    colwidths,
+                                    rowheights,
+                                    this.state.dividerpixels,
+                                    this.state.dividerpixels,
                                     (cell: CellDetails, data: string) => this.modifyCellData(cell, data),
                                     (cell: CellDetails) => this.selectCell(cell),
                                     (cell: CellDetails) => this.deselectCell(cell),
@@ -437,8 +575,8 @@ class MyTable extends React.Component<Props, TableState> {
                 <h2>Table</h2>
                 <div className="table-buttons-div"><button type="button" onClick={() => this.addRow()}>Add Row</button>
                     <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
-                    <button className="table-buttons" type="button" >Merge Selected Cells</button>
-                    <button className="table-buttons" type="button" >Split Selected Cells</button>
+                    <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
+                    <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
                 </div>
 
                 {this.drawTable()}

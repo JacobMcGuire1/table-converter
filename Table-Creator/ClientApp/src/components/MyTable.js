@@ -60,14 +60,35 @@ var CellDetails = /** @class */ (function () {
         this.p = p;
         this.setData(p.toString());
     }
+    CellDetails.prototype.isSelected = function () {
+        return this.selected;
+    };
     CellDetails.prototype.select = function () {
         this.selected = true;
     };
     CellDetails.prototype.deselect = function () {
         this.selected = false;
     };
-    CellDetails.prototype.merge = function (p) {
-        this.mergeroot = p.toString();
+    CellDetails.prototype.getMergeRoot = function () {
+        return this.mergeroot;
+    };
+    CellDetails.prototype.getMergeChildren = function () {
+        return this.mergechildren;
+    };
+    CellDetails.prototype.unMerge = function () {
+        this.mergeroot = "";
+        this.mergechildren = [];
+        this.hidden = false;
+    };
+    CellDetails.prototype.mergeAsChild = function (root) {
+        this.mergeroot = root;
+        this.mergechildren = [];
+        this.hidden = true;
+    };
+    CellDetails.prototype.mergeAsRoot = function (children) {
+        this.mergeroot = this.p.toString();
+        this.mergechildren = children;
+        this.hidden = false;
     };
     CellDetails.prototype.enableEdit = function () {
         this.editing = true;
@@ -75,7 +96,7 @@ var CellDetails = /** @class */ (function () {
     CellDetails.prototype.disableEdit = function () {
         this.editing = false;
     };
-    CellDetails.prototype.getWidth = function () {
+    CellDetails.prototype.getTextWidth = function () {
         if (this.isVisible()) {
             var canvas = document.createElement('canvas'), context = canvas.getContext('2d');
             var lines = this.data.split("\n");
@@ -95,14 +116,14 @@ var CellDetails = /** @class */ (function () {
     CellDetails.prototype.getData = function () {
         return this.data;
     };
-    CellDetails.prototype.getHeight = function () {
+    CellDetails.prototype.getTextHeight = function () {
         var lines = this.data.split("\n");
         return this.height;
     };
     CellDetails.prototype.setData = function (data) {
         this.data = data;
-        this.width = this.getWidth();
-        this.height = this.getHeight();
+        this.width = this.getTextWidth();
+        this.height = this.getTextHeight();
     };
     CellDetails.prototype.copy = function () {
         return Object.assign({}, this);
@@ -110,9 +131,39 @@ var CellDetails = /** @class */ (function () {
     CellDetails.prototype.isVisible = function () {
         return (this.mergeroot === this.p.toString()) || (this.mergeroot === "");
     };
-    CellDetails.prototype.draw = function (xpixel, ypixel, width, height, changeData, selectCell, deSelectCell, enableEditMode, disableEditMode) {
+    CellDetails.prototype.calculateWidth = function (colwidths, horizontaldividersize) {
+        if (this.mergeroot === this.p.toString()) {
+            var colset_1 = new Set();
+            colset_1.add(this.p.col);
+            this.mergechildren.forEach(function (item) {
+                var p = new TablePoint(undefined, undefined, item);
+                colset_1.add(p.col);
+            });
+            var width_1 = 0;
+            colset_1.forEach(function (x) { return width_1 = colwidths[x] + width_1 + horizontaldividersize; });
+            width_1 = width_1 - horizontaldividersize;
+            return width_1;
+        }
+        return colwidths[this.p.col];
+    };
+    CellDetails.prototype.calculateHeight = function (rowheights, verticaldividersize) {
+        if (this.mergeroot === this.p.toString()) {
+            var rowset_1 = new Set();
+            rowset_1.add(this.p.row);
+            this.mergechildren.forEach(function (item) {
+                var p = new TablePoint(undefined, undefined, item);
+                rowset_1.add(p.row);
+            });
+            var height_1 = 0;
+            rowset_1.forEach(function (x) { return height_1 = rowheights[x] + height_1 + verticaldividersize; });
+            height_1 = height_1 - verticaldividersize;
+            return height_1;
+        }
+        return rowheights[this.p.row];
+    };
+    CellDetails.prototype.draw = function (xpixel, ypixel, colwidths, rowheights, horizontaldividersize, verticaldividersize, changeData, selectCell, deSelectCell, enableEditMode, disableEditMode) {
         if (this.isVisible()) {
-            return (React.createElement(SVGCell, { key: this.p.toString(), cell: this, xpixel: xpixel, ypixel: ypixel, width: width, height: height, changeData: changeData, selectcell: selectCell, deselectcell: deSelectCell, enableedit: enableEditMode, disableedit: disableEditMode, selected: this.selected, editing: this.editing }));
+            return (React.createElement(SVGCell, { key: this.p.toString(), cell: this, xpixel: xpixel, ypixel: ypixel, width: this.calculateWidth(colwidths, horizontaldividersize), height: this.calculateHeight(rowheights, verticaldividersize), changeData: changeData, selectcell: selectCell, deselectcell: deSelectCell, enableedit: enableEditMode, disableedit: disableEditMode, selected: this.selected, editing: this.editing }));
         }
     };
     return CellDetails;
@@ -206,6 +257,85 @@ var MyTable = /** @class */ (function (_super) {
     MyTable.prototype.deselectCell = function (cell) {
         var newtable = this.state.table.map(function (x) { return x; });
         cell.deselect();
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.getSelectedCells = function () {
+        var selectedcells = [];
+        for (var row = 0; row < this.getRowCount(); row++) {
+            for (var col = 0; col < this.getColCount(); col++) {
+                var cell = this.state.table[row][col];
+                if (cell.isSelected()) {
+                    selectedcells.push(cell);
+                }
+            }
+        }
+        return selectedcells;
+    };
+    MyTable.prototype.mergeCells = function () {
+        var selectedcells = this.getSelectedCells();
+        if (selectedcells.length <= 1)
+            return;
+        var minrow = Infinity;
+        var mincol = Infinity;
+        var maxrow = 0;
+        var maxcol = 0;
+        selectedcells.forEach(function (item) {
+            var p = item.p;
+            if (p.row < minrow) {
+                minrow = p.row;
+            }
+            if (p.row > maxrow) {
+                maxrow = p.row;
+            }
+            if (p.col < mincol) {
+                mincol = p.col;
+            }
+            if (p.col > maxcol) {
+                maxcol = p.col;
+            }
+            item.deselect();
+        });
+        var root = this.state.table[minrow][mincol];
+        var children = [];
+        for (var row = minrow; row <= maxrow; row++) {
+            for (var col = mincol; col <= maxcol; col++) {
+                var cell = this.state.table[row][col];
+                if (!cell.p.equals(root.p)) {
+                    children.push(cell);
+                    cell.mergeAsChild(root.p.toString());
+                }
+            }
+        }
+        var childrenstrings = children.map(function (x) { return x.p.toString(); });
+        root.mergeAsRoot(childrenstrings);
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.splitCells = function () {
+        var _this = this;
+        var selectedcells = this.getSelectedCells();
+        if (selectedcells.length === 0)
+            return;
+        var roots = new Set();
+        selectedcells.forEach(function (item) {
+            if (item.getMergeRoot() !== "") {
+                roots.add(item.getMergeRoot());
+            }
+            item.deselect();
+        });
+        var rootsarray = Array.from(roots);
+        rootsarray.forEach(function (item) {
+            var p = new TablePoint(undefined, undefined, item);
+            var cell = _this.state.table[p.row][p.col];
+            var children = cell.getMergeChildren();
+            children.forEach(function (childitem) {
+                var p2 = new TablePoint(undefined, undefined, childitem);
+                var childcell = _this.state.table[p2.row][p2.col];
+                childcell.unMerge();
+            });
+            cell.unMerge();
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
         this.setState({ table: newtable });
     };
     //NEED TO DO CHECKS/VALIDATION HERE
@@ -407,7 +537,7 @@ var MyTable = /** @class */ (function (_super) {
         var tableheight = rowheights.reduce(function (a, b) { return a + b; }, 0) + (this.state.dividerpixels * this.getRowCount());
         return (React.createElement("div", null,
             React.createElement("svg", { width: tablewidth, height: tableheight, id: "svg" }, this.state.table.map(function (innerArray, row) { return (innerArray.map(function (cell, col) {
-                return cell.draw((colwidths.slice(0, col)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (col)), row * (_this.state.mincellheight + _this.state.dividerpixels), colwidths[col], rowheights[row], function (cell, data) { return _this.modifyCellData(cell, data); }, function (cell) { return _this.selectCell(cell); }, function (cell) { return _this.deselectCell(cell); }, function (cell) { return _this.enableCellEdit(cell); }, function (cell) { return _this.disableCellEdit(cell); });
+                return cell.draw((colwidths.slice(0, col)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (col)), row * (_this.state.mincellheight + _this.state.dividerpixels), colwidths, rowheights, _this.state.dividerpixels, _this.state.dividerpixels, function (cell, data) { return _this.modifyCellData(cell, data); }, function (cell) { return _this.selectCell(cell); }, function (cell) { return _this.deselectCell(cell); }, function (cell) { return _this.enableCellEdit(cell); }, function (cell) { return _this.disableCellEdit(cell); });
             })); })),
             React.createElement("br", null),
             React.createElement("h2", null, "LaTeX"),
@@ -420,8 +550,8 @@ var MyTable = /** @class */ (function (_super) {
             React.createElement("div", { className: "table-buttons-div" },
                 React.createElement("button", { type: "button", onClick: function () { return _this.addRow(); } }, "Add Row"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.addCol(); } }, "Add Column"),
-                React.createElement("button", { className: "table-buttons", type: "button" }, "Merge Selected Cells"),
-                React.createElement("button", { className: "table-buttons", type: "button" }, "Split Selected Cells")),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.mergeCells(); } }, "Merge Selected Cells"),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.splitCells(); } }, "Split Selected Cells")),
             this.drawTable()));
     };
     return MyTable;
