@@ -50,7 +50,7 @@ class TablePoint {
 class CellDetails {
     public p: TablePoint;
     private hidden: boolean = false;
-    private editing: boolean = true;
+    private editing: boolean = false;
     private selected: boolean = false;
     private mergeroot: string = "";
     private mergechildren: string[] = [];
@@ -80,6 +80,8 @@ class CellDetails {
         this.mergeroot = "";
         this.mergechildren = [];
         this.hidden = false;
+        this.width = this.getTextWidth();
+        this.height = this.getTextHeight();
     }
     public mergeAsChild(root: string) {
         this.mergeroot = root;
@@ -90,6 +92,8 @@ class CellDetails {
         this.mergeroot = this.p.toString();
         this.mergechildren = children;
         this.hidden = false;
+        this.width = this.getTextWidth();
+        this.height = this.getTextHeight();
     }
     public enableEdit() {
         this.editing = true;
@@ -120,7 +124,7 @@ class CellDetails {
     }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
-        return this.height;
+        return lines.length * 20;
     }
     public setData(data: string) {
         this.data = data;
@@ -212,13 +216,13 @@ class MyTable extends React.Component<Props, TableState> {
     private getColCount(): number {
         return this.state.table[0].length;
     }
-    private getRow(row: number): CellDetails[] {
-        return this.state.table[row];
+    private getRow(rownum: number): CellDetails[] {
+        return this.state.table[rownum];
     }
-    private getCol(col: number): CellDetails[] {
+    private getCol(colnum: number): CellDetails[] {
         let colarray = [];
         for (let row = 0; row < this.getRowCount(); row++) {
-            colarray.push(this.state.table[row][col])
+            colarray.push(this.state.table[row][colnum])
         }
         return colarray;
     }
@@ -382,100 +386,6 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = this.state.table.map((x) => x);
         this.setState({ table: newtable });
     }
-    //NEED TO DO CHECKS/VALIDATION HERE
-    /*private mergeCells() {
-        if (this.state.selectedcells.size > 1) {
-            let xmin = 1000;
-            let ymin = 1000;
-            let xmax = 0;
-            let ymax = 0;
-
-            let selectedcells = Array.from(this.state.selectedcells);
-            let commonmerges = new Set<string>(); //The merges that the selectedcells are currently a part of.
-            selectedcells.forEach(
-                (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
-                    if (p.row < xmin) {
-                        xmin = p.row;
-                    }
-                    if (p.row > xmax) {
-                        xmax = p.row;
-                    }
-                    if (p.col < ymin) {
-                        ymin = p.col;
-                    }
-                    if (p.col > ymax) {
-                        ymax = p.col;
-                    }
-                    let mergeroot = this.cellIsMerged(p);
-                    if (mergeroot !== "") {
-                        commonmerges.add(mergeroot);
-                    }
-                });
-            if (commonmerges.size !== 0) { //Select the cells from the contained merges then deletes those merges and calls the function again to incorporate them into the new merge.
-                let commonmergearray = Array.from(commonmerges);
-                commonmergearray.forEach(
-                    (item) => {
-                        this.state.selectedcells.add(item);
-                        let children = this.state.mergedcells.get(item);
-                        children?.forEach(
-                            (child) => {
-                                this.state.selectedcells.add(child);
-                            })
-                        this.state.mergedcells.delete(item);
-                    })
-                this.mergeCells();
-            } else {
-                let root = new TablePoint(xmin, ymin);
-                let children = [];
-                for (let x = xmin; x <= xmax; x++) {
-                    for (let y = ymin; y <= ymax; y++) {
-                        let p = new TablePoint(x, y);
-                        if (!p.equals(root)) {
-                            children.push(p.toString());
-                        }
-                    }
-                }
-                //Need to deal with the current merges too.
-                let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
-                newmergedcells.set(root.toString(), children);
-
-                //Deselects the cell components.
-                let t = Array.from(this.state.selectedcells);
-                t.forEach(
-                    (item) => {
-                        let k = this.state.refdict.get(item)!.current;
-                        if (k !== null) {
-                            k!.deselectCell();
-                        }
-                    });
-
-                this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
-
-                this.minimiseAllColumnWidths();
-                //Adjust column widths.
-
-
-            }
-        }
-    }*/
-    /*private splitCells() {
-        let t = Array.from(this.state.selectedcells);
-        let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
-        t.forEach(
-            (item) => {
-                let p = new TablePoint(undefined, undefined, item);
-                let merge = this.cellIsMerged(p);
-                if (merge !== "") {
-                    newmergedcells.delete(merge);
-                }
-                let k = this.state.refdict.get(item)!.current;
-                if (k !== null) {
-                    k!.deselectCell();
-                }
-            });
-        this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
-    }*/
     private enableCellEdit(cell: CellDetails) {
         let newtable = this.state.table.map((x) => x);
         cell.enableEdit();
@@ -571,7 +481,7 @@ class MyTable extends React.Component<Props, TableState> {
                             (cell, col) =>
                                 cell.draw(
                                     (colwidths.slice(0, col)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (col)),
-                                    row * (this.state.mincellheight + this.state.dividerpixels),
+                                    (rowheights.slice(0, row)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (row)),//row * (this.state.mincellheight + this.state.dividerpixels),
                                     colwidths,
                                     rowheights,
                                     this.state.dividerpixels,
@@ -670,24 +580,60 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
             this.props.changeData(this.props.p, data);
         }
     }/*/
+    /*private disableEdit(e: React.FormEvent<HTMLDivElement>) {
+        this.props.disableedit(this.props.cell);
+    }
     private changeData(e: React.FormEvent<HTMLDivElement>) {
-        //let data = this.ref2!.current?.firstChild?.textContent;
         let data = (e.target as HTMLDivElement).textContent;
         if (data != null) {
             this.props.changeData(this.props.cell, data);
         }
+    }*/
+    private changeData(e: React.ChangeEvent<HTMLTextAreaElement>) {
+        this.props.changeData(this.props.cell, e.target.value);
+        /*let data = (e.target as HTMLDivElement).textContent;
+        if (data != null) {
+            this.props.changeData(this.props.cell, data);
+        }*/
+    }
+    private disableEdit(e: React.FocusEvent<HTMLTextAreaElement>) {
+        this.props.disableedit(this.props.cell);
+    }
+    private moveCursorToEnd(e: React.FocusEvent<HTMLTextAreaElement>) {
+        let value = e.target.value;
+        e.target.value = "";
+        e.target.value = value;
     }
     private getText() {
+        let lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
+            
+            if (lines.length === 1) {
+                return (
+                    <g>
+                        <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"}>{lines[0]}</text>
+                    </g>
+                );
+            }
             return (
-                <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle" } alignmentBaseline={"central"}>{this.props.cell.getData()}</text>
+                <g>
+                    {
+                        lines.map(
+                            (line, i) =>
+                                <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 9 + (i * 20)} textAnchor={"middle"} alignmentBaseline={"central"}>{line}</text>
+                        )
+
+                    }
+                </g>
             );
         } else {
+            let rows = lines.length;
             return (
                 <foreignObject x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height}>
-                    <div contentEditable={true} onBlur={() => this.props.disableedit(this.props.cell)} tabIndex={0} onInput={(e) => this.changeData(e)} suppressContentEditableWarning={true}>
+                    <textarea className="cell-input" value={this.props.cell.getData()} rows={ 100 } tabIndex={0} onChange={(e) => this.changeData(e)} onBlur={(e) => this.disableEdit(e)} autoFocus={true} onFocus={(e) => this.moveCursorToEnd(e)}/>
+                    {/*<div contentEditable={true} tabIndex={0} onBlur={(e) => this.disableEdit(e)} onChange={(e) => this.changeData(e)} suppressContentEditableWarning={true} id={this.props.cell.p.toString() + "editdiv"}>
                         {this.props.cell.getData()}
-                    </div>
+                    </div>*/}
                 </foreignObject>
             );
         }
@@ -705,6 +651,19 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         } else {
             return "grey"
         }
+    }
+    componentDidUpdate() {
+        /*if (this.props.editing) {
+            let el = document.getElementById(this.props.cell.p.toString() + "editdiv");
+            el?.focus();
+
+            var range = document.createRange();
+            range.selectNodeContents(el!);
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel!.removeAllRanges();
+            sel!.addRange(range);
+        }     */   
     }
     public render() {
         return (

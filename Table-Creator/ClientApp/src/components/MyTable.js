@@ -50,7 +50,7 @@ var TablePoint = /** @class */ (function () {
 var CellDetails = /** @class */ (function () {
     function CellDetails(p) {
         this.hidden = false;
-        this.editing = true;
+        this.editing = false;
         this.selected = false;
         this.mergeroot = "";
         this.mergechildren = [];
@@ -79,6 +79,8 @@ var CellDetails = /** @class */ (function () {
         this.mergeroot = "";
         this.mergechildren = [];
         this.hidden = false;
+        this.width = this.getTextWidth();
+        this.height = this.getTextHeight();
     };
     CellDetails.prototype.mergeAsChild = function (root) {
         this.mergeroot = root;
@@ -89,6 +91,8 @@ var CellDetails = /** @class */ (function () {
         this.mergeroot = this.p.toString();
         this.mergechildren = children;
         this.hidden = false;
+        this.width = this.getTextWidth();
+        this.height = this.getTextHeight();
     };
     CellDetails.prototype.enableEdit = function () {
         this.editing = true;
@@ -118,7 +122,7 @@ var CellDetails = /** @class */ (function () {
     };
     CellDetails.prototype.getTextHeight = function () {
         var lines = this.data.split("\n");
-        return this.height;
+        return lines.length * 20;
     };
     CellDetails.prototype.setData = function (data) {
         this.data = data;
@@ -194,13 +198,13 @@ var MyTable = /** @class */ (function (_super) {
     MyTable.prototype.getColCount = function () {
         return this.state.table[0].length;
     };
-    MyTable.prototype.getRow = function (row) {
-        return this.state.table[row];
+    MyTable.prototype.getRow = function (rownum) {
+        return this.state.table[rownum];
     };
-    MyTable.prototype.getCol = function (col) {
+    MyTable.prototype.getCol = function (colnum) {
         var colarray = [];
         for (var row = 0; row < this.getRowCount(); row++) {
-            colarray.push(this.state.table[row][col]);
+            colarray.push(this.state.table[row][colnum]);
         }
         return colarray;
     };
@@ -360,100 +364,6 @@ var MyTable = /** @class */ (function (_super) {
         var newtable = this.state.table.map(function (x) { return x; });
         this.setState({ table: newtable });
     };
-    //NEED TO DO CHECKS/VALIDATION HERE
-    /*private mergeCells() {
-        if (this.state.selectedcells.size > 1) {
-            let xmin = 1000;
-            let ymin = 1000;
-            let xmax = 0;
-            let ymax = 0;
-
-            let selectedcells = Array.from(this.state.selectedcells);
-            let commonmerges = new Set<string>(); //The merges that the selectedcells are currently a part of.
-            selectedcells.forEach(
-                (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
-                    if (p.row < xmin) {
-                        xmin = p.row;
-                    }
-                    if (p.row > xmax) {
-                        xmax = p.row;
-                    }
-                    if (p.col < ymin) {
-                        ymin = p.col;
-                    }
-                    if (p.col > ymax) {
-                        ymax = p.col;
-                    }
-                    let mergeroot = this.cellIsMerged(p);
-                    if (mergeroot !== "") {
-                        commonmerges.add(mergeroot);
-                    }
-                });
-            if (commonmerges.size !== 0) { //Select the cells from the contained merges then deletes those merges and calls the function again to incorporate them into the new merge.
-                let commonmergearray = Array.from(commonmerges);
-                commonmergearray.forEach(
-                    (item) => {
-                        this.state.selectedcells.add(item);
-                        let children = this.state.mergedcells.get(item);
-                        children?.forEach(
-                            (child) => {
-                                this.state.selectedcells.add(child);
-                            })
-                        this.state.mergedcells.delete(item);
-                    })
-                this.mergeCells();
-            } else {
-                let root = new TablePoint(xmin, ymin);
-                let children = [];
-                for (let x = xmin; x <= xmax; x++) {
-                    for (let y = ymin; y <= ymax; y++) {
-                        let p = new TablePoint(x, y);
-                        if (!p.equals(root)) {
-                            children.push(p.toString());
-                        }
-                    }
-                }
-                //Need to deal with the current merges too.
-                let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
-                newmergedcells.set(root.toString(), children);
-
-                //Deselects the cell components.
-                let t = Array.from(this.state.selectedcells);
-                t.forEach(
-                    (item) => {
-                        let k = this.state.refdict.get(item)!.current;
-                        if (k !== null) {
-                            k!.deselectCell();
-                        }
-                    });
-
-                this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
-
-                this.minimiseAllColumnWidths();
-                //Adjust column widths.
-
-
-            }
-        }
-    }*/
-    /*private splitCells() {
-        let t = Array.from(this.state.selectedcells);
-        let newmergedcells = new Map<string, string[]>(this.state.mergedcells);
-        t.forEach(
-            (item) => {
-                let p = new TablePoint(undefined, undefined, item);
-                let merge = this.cellIsMerged(p);
-                if (merge !== "") {
-                    newmergedcells.delete(merge);
-                }
-                let k = this.state.refdict.get(item)!.current;
-                if (k !== null) {
-                    k!.deselectCell();
-                }
-            });
-        this.setState({ mergedcells: newmergedcells, selectedcells: new Set<string>() });
-    }*/
     MyTable.prototype.enableCellEdit = function (cell) {
         var newtable = this.state.table.map(function (x) { return x; });
         cell.enableEdit();
@@ -559,7 +469,8 @@ var MyTable = /** @class */ (function (_super) {
         var tableheight = rowheights.reduce(function (a, b) { return a + b; }, 0) + (this.state.dividerpixels * this.getRowCount());
         return (React.createElement("div", null,
             React.createElement("svg", { width: tablewidth, height: tableheight, id: "svg" }, this.state.table.map(function (innerArray, row) { return (innerArray.map(function (cell, col) {
-                return cell.draw((colwidths.slice(0, col)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (col)), row * (_this.state.mincellheight + _this.state.dividerpixels), colwidths, rowheights, _this.state.dividerpixels, _this.state.dividerpixels, function (cell, data) { return _this.modifyCellData(cell, data); }, function (cell) { return _this.selectCell(cell); }, function (cell) { return _this.deselectCell(cell); }, function (cell) { return _this.enableCellEdit(cell); }, function (cell) { return _this.disableCellEdit(cell); });
+                return cell.draw((colwidths.slice(0, col)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (col)), (rowheights.slice(0, row)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (row)), //row * (this.state.mincellheight + this.state.dividerpixels),
+                colwidths, rowheights, _this.state.dividerpixels, _this.state.dividerpixels, function (cell, data) { return _this.modifyCellData(cell, data); }, function (cell) { return _this.selectCell(cell); }, function (cell) { return _this.deselectCell(cell); }, function (cell) { return _this.enableCellEdit(cell); }, function (cell) { return _this.disableCellEdit(cell); });
             })); })),
             React.createElement("br", null),
             React.createElement("h2", null, "LaTeX"),
@@ -623,21 +534,46 @@ var SVGCell = /** @class */ (function (_super) {
             this.props.changeData(this.props.p, data);
         }
     }/*/
-    SVGCell.prototype.changeData = function (e) {
-        //let data = this.ref2!.current?.firstChild?.textContent;
-        var data = e.target.textContent;
+    /*private disableEdit(e: React.FormEvent<HTMLDivElement>) {
+        this.props.disableedit(this.props.cell);
+    }
+    private changeData(e: React.FormEvent<HTMLDivElement>) {
+        let data = (e.target as HTMLDivElement).textContent;
         if (data != null) {
             this.props.changeData(this.props.cell, data);
         }
+    }*/
+    SVGCell.prototype.changeData = function (e) {
+        this.props.changeData(this.props.cell, e.target.value);
+        /*let data = (e.target as HTMLDivElement).textContent;
+        if (data != null) {
+            this.props.changeData(this.props.cell, data);
+        }*/
+    };
+    SVGCell.prototype.disableEdit = function (e) {
+        this.props.disableedit(this.props.cell);
+    };
+    SVGCell.prototype.moveCursorToEnd = function (e) {
+        var value = e.target.value;
+        e.target.value = "";
+        e.target.value = value;
     };
     SVGCell.prototype.getText = function () {
         var _this = this;
+        var lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
-            return (React.createElement("text", { x: this.props.xpixel + this.props.width / 2, y: this.props.ypixel + 20, textAnchor: "middle", alignmentBaseline: "central" }, this.props.cell.getData()));
+            if (lines.length === 1) {
+                return (React.createElement("g", null,
+                    React.createElement("text", { x: this.props.xpixel + this.props.width / 2, y: this.props.ypixel + 20, textAnchor: "middle", alignmentBaseline: "central" }, lines[0])));
+            }
+            return (React.createElement("g", null, lines.map(function (line, i) {
+                return React.createElement("text", { x: _this.props.xpixel + _this.props.width / 2, y: _this.props.ypixel + 9 + (i * 20), textAnchor: "middle", alignmentBaseline: "central" }, line);
+            })));
         }
         else {
+            var rows = lines.length;
             return (React.createElement("foreignObject", { x: this.props.xpixel, y: this.props.ypixel, width: this.props.width, height: this.props.height },
-                React.createElement("div", { contentEditable: true, onBlur: function () { return _this.props.disableedit(_this.props.cell); }, tabIndex: 0, onInput: function (e) { return _this.changeData(e); }, suppressContentEditableWarning: true }, this.props.cell.getData())));
+                React.createElement("textarea", { className: "cell-input", value: this.props.cell.getData(), rows: 100, tabIndex: 0, onChange: function (e) { return _this.changeData(e); }, onBlur: function (e) { return _this.disableEdit(e); }, autoFocus: true, onFocus: function (e) { return _this.moveCursorToEnd(e); } })));
         }
     };
     SVGCell.prototype.clickCell = function (e) {
@@ -655,6 +591,19 @@ var SVGCell = /** @class */ (function (_super) {
         else {
             return "grey";
         }
+    };
+    SVGCell.prototype.componentDidUpdate = function () {
+        /*if (this.props.editing) {
+            let el = document.getElementById(this.props.cell.p.toString() + "editdiv");
+            el?.focus();
+
+            var range = document.createRange();
+            range.selectNodeContents(el!);
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel!.removeAllRanges();
+            sel!.addRange(range);
+        }     */
     };
     SVGCell.prototype.render = function () {
         var _this = this;
