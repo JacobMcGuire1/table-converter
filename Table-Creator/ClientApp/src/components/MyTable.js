@@ -146,23 +146,28 @@ var CellDetails = /** @class */ (function () {
     };
     CellDetails.prototype.getLatex = function () {
         var data = escapeLatex(this.getData());
-        switch (this.mergeroot) {
-            case this.p.toString():
-                var size = this.getMergeSize();
-                var h = size[0];
-                var w = size[1];
-                if (w == 0) {
-                    return "\\multirow{ h } {*} {" + data + "}";
-                }
-                if (h == 0) {
-                    return "\\multicolumn{" + (w + 1).toString() + "}{c}{" + data + "}";
-                }
-                return data; //Should return multi thing here.
-            case "":
-                return data;
-            default:
-                return "THIS CELL SHOULD NOT BE DISPLAYED";
+        if (this.mergeroot === "") {
+            return data + " &";
         }
+        if (this.mergeroot === this.p.toString()) {
+            var size = this.getMergeSize();
+            var h = size[0];
+            var w = size[1];
+            if (w == 0) {
+                return "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "} &";
+            }
+            if (h == 0) {
+                return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
+            }
+            //return data + " &"; //Should return multi thing here.
+            return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
+        }
+        //return "THIS CELL SHOULD NOT BE DISPLAYED";
+        var rootp = new TablePoint(undefined, undefined, this.mergeroot);
+        if (this.p.row > rootp.row) {
+            return "&";
+        }
+        return "";
     };
     CellDetails.prototype.getTextHeight = function () {
         var lines = this.data.split("\n");
@@ -222,7 +227,7 @@ var MyTable = /** @class */ (function (_super) {
         var _this = _super.call(this, props) || this;
         _this.addRow = _this.addRow.bind(_this);
         _this.addCol = _this.addCol.bind(_this);
-        _this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 5 };
+        _this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 5, horizontallines: true };
         _this.testPopulateTable();
         return _this;
     }
@@ -428,18 +433,22 @@ var MyTable = /** @class */ (function (_super) {
             var rowarray = this_1.state.table[row];
             var rowlatex = "";
             rowarray.forEach(function (x) {
-                if (x.isVisible()) {
-                    rowlatex = rowlatex + x.getLatex() + " & ";
-                }
+                rowlatex = rowlatex + x.getLatex();
             }); /* Escapes & characters and backslashes */
-            rowlatex = rowlatex.slice(0, -3);
+            //rowlatex = rowlatex.slice(0, -3);
+            if (rowlatex.charAt(rowlatex.length - 1) === '&')
+                rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
+            if (this_1.state.horizontallines)
+                rowlatex = rowlatex + " \\hline";
             latextable.push(rowlatex);
         };
         var this_1 = this;
         for (var row = 0; row < this.getRowCount(); row++) {
             _loop_1(row);
         }
+        if (this.state.horizontallines && latextable.length > 0)
+            latextable[0] = " \\hline" + "\n" + latextable[0];
         var bs = "\\";
         var cu1 = "{";
         var cu2 = "}";

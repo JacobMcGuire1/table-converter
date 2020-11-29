@@ -12,6 +12,7 @@ type TableState = {
     mincellheight: number;
     mincellwidth: number;
     dividerpixels: number;
+    horizontallines: boolean;
 }
 
 function escapeLatex(str: string){
@@ -148,23 +149,28 @@ class CellDetails {
     }
     public getLatex(): string {
         let data = escapeLatex(this.getData());
-        switch (this.mergeroot) {
-            case this.p.toString():
-                let size = this.getMergeSize();
-                let h = size[0];
-                let w = size[1];
-                if (w == 0) {
-                    return "\\multirow{ h } {*} {" + data + "}";
-                }
-                if (h == 0) {
-                    return "\\multicolumn{" + (w + 1).toString() + "}{c}{" + data + "}";
-                }
-                return data; //Should return multi thing here.
-            case "":
-                return data;
-            default:
-                return "THIS CELL SHOULD NOT BE DISPLAYED";
+        if (this.mergeroot === "") {
+            return data + " &";
         }
+        if (this.mergeroot === this.p.toString()) {
+            let size = this.getMergeSize();
+            let h = size[0];
+            let w = size[1];
+            if (w == 0) {
+                return "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "} &";
+            }
+            if (h == 0) {
+                return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
+            }
+            //return data + " &"; //Should return multi thing here.
+            return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
+        }
+        //return "THIS CELL SHOULD NOT BE DISPLAYED";
+        let rootp = new TablePoint(undefined, undefined, this.mergeroot);
+        if (this.p.row > rootp.row) {
+            return "&";
+        }     
+        return "";
     }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
@@ -241,7 +247,7 @@ class MyTable extends React.Component<Props, TableState> {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 5 };
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 5, horizontallines: true};
         this.testPopulateTable();
     }
     private testPopulateTable() {
@@ -452,15 +458,15 @@ class MyTable extends React.Component<Props, TableState> {
             let rowlatex = "";
             rowarray.forEach(
                 (x) => {
-                    if (x.isVisible()) {
-                        rowlatex = rowlatex + x.getLatex() + " & ";
-                    }
-                    
+                    rowlatex = rowlatex + x.getLatex();
                 }); /* Escapes & characters and backslashes */
-            rowlatex = rowlatex.slice(0, -3);
+            //rowlatex = rowlatex.slice(0, -3);
+            if (rowlatex.charAt(rowlatex.length - 1) === '&') rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
+            if (this.state.horizontallines) rowlatex = rowlatex + " \\hline";
             latextable.push(rowlatex);
         }
+        if (this.state.horizontallines && latextable.length > 0) latextable[0] = " \\hline" + "\n" + latextable[0];
 
         let bs = "\\";
         let cu1 = "{";
