@@ -510,7 +510,8 @@ var MyTable = /** @class */ (function (_super) {
                 React.createElement("button", { type: "button", onClick: function () { return _this.addRow(); } }, "Add Row"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.addCol(); } }, "Add Column"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.mergeCells(); } }, "Merge Selected Cells"),
-                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.splitCells(); } }, "Split Selected Cells")),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.splitCells(); } }, "Split Selected Cells"),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines")),
             this.drawTable()));
     };
     return MyTable;

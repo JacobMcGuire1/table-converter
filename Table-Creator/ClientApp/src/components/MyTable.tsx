@@ -534,6 +534,7 @@ class MyTable extends React.Component<Props, TableState> {
                     <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
                     <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
+                    <button className="table-buttons" type="button" onClick={() => this.setState({horizontallines: !this.state.horizontallines})}>Toggle horizontal lines</button>
                 </div>
 
                 {this.drawTable()}
