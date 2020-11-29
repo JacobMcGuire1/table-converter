@@ -219,7 +219,7 @@ class CellDetails {
         }
         return rowheights[this.p.row];
     }
-    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function) {
+    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, hlines: boolean) {
         if (this.isVisible()) {
             return (
                 <SVGCell
@@ -236,6 +236,7 @@ class CellDetails {
                     disableedit={disableEditMode}
                     selected={this.selected}
                     editing={this.editing}
+                    hlines={hlines}
                 />
             );
         }
@@ -247,7 +248,7 @@ class MyTable extends React.Component<Props, TableState> {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 5, horizontallines: true};
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true};
         this.testPopulateTable();
     }
     private testPopulateTable() {
@@ -472,9 +473,19 @@ class MyTable extends React.Component<Props, TableState> {
         let cu1 = "{";
         let cu2 = "}";
 
-        return (
-            <div>
-                {bs}begin{cu1}center{cu2}
+        let latex = "";
+        latex += "\\begin{center}";
+        latex += "\n\\begin{tabular}{" + collatex + "}";
+        latextable.forEach(
+            (x) => {
+                latex += "\n" + x;
+            }
+        );
+        latex += "\n\\end{tabular}";
+        latex += "\n\\end{center}";
+
+        /*
+         * {bs}begin{cu1}center{cu2}
                 <br />
                 {bs}begin{cu1}tabular{cu2}{cu1}{collatex}{cu2}
                 <br />
@@ -482,7 +493,13 @@ class MyTable extends React.Component<Props, TableState> {
                 {bs}end{cu1}tabular{cu2}
                 <br />
                 {bs}end{cu1}center{cu2}
+        */
+
+        return (
+            <div>
+                <textarea readOnly={true} rows={15} cols={15} className="cell-input" id="latextextarea" value={latex}/>
             </div>
+            
         );
     }
     private drawTable() {
@@ -514,7 +531,8 @@ class MyTable extends React.Component<Props, TableState> {
                                     (cell: CellDetails) => this.selectCell(cell),
                                     (cell: CellDetails) => this.deselectCell(cell),
                                     (cell: CellDetails) => this.enableCellEdit(cell),
-                                    (cell: CellDetails) => this.disableCellEdit(cell)
+                                    (cell: CellDetails) => this.disableCellEdit(cell),
+                                    this.state.horizontallines
                                 )
                         )
                     ))}
@@ -522,6 +540,7 @@ class MyTable extends React.Component<Props, TableState> {
 
                 <br />
                 <h2>LaTeX</h2>
+                <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
                 {this.convertToLatex()}
             </div>
         );
@@ -534,12 +553,21 @@ class MyTable extends React.Component<Props, TableState> {
                     <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
                     <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
-                    <button className="table-buttons" type="button" onClick={() => this.setState({horizontallines: !this.state.horizontallines})}>Toggle horizontal lines</button>
+                    <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
+                    
                 </div>
 
                 {this.drawTable()}
             </div>
         );
+    }
+    copyLatex(): void {
+        let copyText = document.getElementById("latextextarea");
+        (copyText! as HTMLTextAreaElement).select();
+        (copyText! as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        let sel = document.getSelection();
+        sel!.removeAllRanges();
     }
 }
 
@@ -560,66 +588,15 @@ interface SVGCellProps {
     disableedit: Function
     selected: boolean
     editing: boolean
+    hlines: boolean
 }
 
 class SVGCell extends React.Component<SVGCellProps, {}> {
     constructor(props: SVGCellProps) {
         super(props);
     }
-    /*public deselectCell() {
-        if (this.state.selected) {
-            this.setState({ selected: false });
-            this.changeBackgroundColour("grey");
-        }
-    }
-    private toggleEditMode() {
-        this.setState({ editing: !this.state.editing });
-    }
-    private clickCell(e: React.MouseEvent<SVGGElement, MouseEvent>) { //Should check if can be selected.
-        if (!this.state.selected) {
-            this.changeBackgroundColour("red");
-            this.props.selectcell(this.props.p);
-        } else {
-            this.changeBackgroundColour("grey"); 
-            this.props.deselectcell(this.props.p);
-        }
-        this.setState({ selected: !this.state.selected });
-    }
-    private changeBackgroundColour(colour: string) {
-        let k = this.ref!;
-        let j = k.current!;
-        let rect = j.children[0] as React.SVGProps<SVGRectElement>;
-        rect.style!.fill = colour;
-    }
-    private changeData(e: React.ChangeEvent<HTMLTextAreaElement>) {
-        this.props.changeData(this.props.p, e.target.value);
-    }
-    private moveCursorToEnd(e: React.FocusEvent<HTMLTextAreaElement>) {
-        let value = e.target.value;
-        e.target.value = "";
-        e.target.value = value;
-    }
-    private changeData2(e: React.FormEvent<HTMLDivElement>) {
-        let data = this.ref2!.current?.firstChild?.textContent;
-        if (data != null) {
-            this.props.changeData(this.props.p, data);
-        }
-    }/*/
-    /*private disableEdit(e: React.FormEvent<HTMLDivElement>) {
-        this.props.disableedit(this.props.cell);
-    }
-    private changeData(e: React.FormEvent<HTMLDivElement>) {
-        let data = (e.target as HTMLDivElement).textContent;
-        if (data != null) {
-            this.props.changeData(this.props.cell, data);
-        }
-    }*/
     private changeData(e: React.ChangeEvent<HTMLTextAreaElement>) {
         this.props.changeData(this.props.cell, e.target.value);
-        /*let data = (e.target as HTMLDivElement).textContent;
-        if (data != null) {
-            this.props.changeData(this.props.cell, data);
-        }*/
     }
     private disableEdit(e: React.FocusEvent<HTMLTextAreaElement>) {
         this.props.disableedit(this.props.cell);
@@ -674,26 +651,15 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         if (this.props.selected) {
             return "red";
         } else {
-            return "grey"
+            return "white"
         }
     }
     componentDidUpdate() {
-        /*if (this.props.editing) {
-            let el = document.getElementById(this.props.cell.p.toString() + "editdiv");
-            el?.focus();
-
-            var range = document.createRange();
-            range.selectNodeContents(el!);
-            range.collapse(false);
-            var sel = window.getSelection();
-            sel!.removeAllRanges();
-            sel!.addRange(range);
-        }     */   
     }
     public render() {
         return (
             <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={"cell:" + this.props.cell.p.toString()}>
-                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()}/>
+                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke="black" strokeWidth={this.props.hlines? 2 : 0}/>
                 {this.getText()}
             </g>
         );
