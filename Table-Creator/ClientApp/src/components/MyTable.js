@@ -120,6 +120,50 @@ var CellDetails = /** @class */ (function () {
     CellDetails.prototype.getData = function () {
         return this.data;
     };
+    CellDetails.prototype.getMergeSize = function () {
+        if (this.mergechildren == [])
+            return [-1, -1];
+        var mincol = this.p.col;
+        var maxcol = this.p.col;
+        var minrow = this.p.row;
+        var maxrow = this.p.row;
+        this.mergechildren.forEach(function (item) {
+            var p = new TablePoint(undefined, undefined, item);
+            if (p.row < minrow) {
+                minrow = p.row;
+            }
+            if (p.row > maxrow) {
+                maxrow = p.row;
+            }
+            if (p.col < mincol) {
+                mincol = p.col;
+            }
+            if (p.col > maxcol) {
+                maxcol = p.col;
+            }
+        });
+        return [maxrow - minrow, maxcol - mincol];
+    };
+    CellDetails.prototype.getLatex = function () {
+        var data = escapeLatex(this.getData());
+        switch (this.mergeroot) {
+            case this.p.toString():
+                var size = this.getMergeSize();
+                var h = size[0];
+                var w = size[1];
+                if (w == 0) {
+                    return "\\multirow{ h } {*} {" + data + "}";
+                }
+                if (h == 0) {
+                    return "\\multicolumn{" + (w + 1).toString() + "}{c}{" + data + "}";
+                }
+                return data; //Should return multi thing here.
+            case "":
+                return data;
+            default:
+                return "THIS CELL SHOULD NOT BE DISPLAYED";
+        }
+    };
     CellDetails.prototype.getTextHeight = function () {
         var lines = this.data.split("\n");
         return lines.length * 20;
@@ -383,7 +427,11 @@ var MyTable = /** @class */ (function (_super) {
         var _loop_1 = function (row) {
             var rowarray = this_1.state.table[row];
             var rowlatex = "";
-            rowarray.forEach(function (x) { return rowlatex = rowlatex + escapeLatex(x.getData()) + " & "; }); /* Escapes & characters and backslashes */
+            rowarray.forEach(function (x) {
+                if (x.isVisible()) {
+                    rowlatex = rowlatex + x.getLatex() + " & ";
+                }
+            }); /* Escapes & characters and backslashes */
             rowlatex = rowlatex.slice(0, -3);
             rowlatex = rowlatex + " \\\\";
             latextable.push(rowlatex);
@@ -424,37 +472,6 @@ var MyTable = /** @class */ (function (_super) {
             "center",
             cu2));
     };
-    /*private getMergeDetails(p: TablePoint) {
-        let width = -1;
-        let height = -1;
-        if (this.state.mergedcells.has(p.toString())) {
-            //calculate width and height of merged cell.
-            let cells = this.state.mergedcells.get(p.toString());
-            let cols = new Set<number>();
-            let rows = new Set<number>();
-            cols.add(p.row);
-            rows.add(p.col);
-            cells?.forEach(
-                (item) => {
-                    let point = new TablePoint(undefined, undefined, item);
-                    cols.add(point.row);
-                    rows.add(point.col);
-                })
-            width = 0;
-            height = 0;
-            rows.forEach(
-                (item) => {
-                    width += this.state.colwidths[item];
-                })
-            cols.forEach(
-                (item) => {
-                    height += this.state.rowheights[item];
-                })
-            width += ((rows.size - 1) * this.state.dividerpixels);
-            height += ((cols.size - 1) * this.state.dividerpixels);
-        }
-        return [width, height];
-    }*/
     MyTable.prototype.drawTable = function () {
         var _this = this;
         var rowheights = [];

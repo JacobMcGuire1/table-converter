@@ -4,8 +4,8 @@ import { findDOMNode } from 'react-dom';
 import './MyTable.css';
 
 type Props = {
-    foo: string;
 }
+
 
 type TableState = {
     table: CellDetails[][];
@@ -121,6 +121,50 @@ class CellDetails {
     }
     public getData(): string {
         return this.data;
+    }
+    public getMergeSize(): number[] {
+        if (this.mergechildren == []) return [-1, -1];
+        let mincol = this.p.col;
+        let maxcol = this.p.col;
+        let minrow = this.p.row;
+        let maxrow = this.p.row;
+        this.mergechildren.forEach(
+            (item) => {
+                let p = new TablePoint(undefined, undefined, item);
+                if (p.row < minrow) {
+                    minrow = p.row;
+                }
+                if (p.row > maxrow) {
+                    maxrow = p.row;
+                }
+                if (p.col < mincol) {
+                    mincol = p.col;
+                }
+                if (p.col > maxcol) {
+                    maxcol = p.col;
+                }
+            });
+        return [maxrow - minrow, maxcol - mincol];
+    }
+    public getLatex(): string {
+        let data = escapeLatex(this.getData());
+        switch (this.mergeroot) {
+            case this.p.toString():
+                let size = this.getMergeSize();
+                let h = size[0];
+                let w = size[1];
+                if (w == 0) {
+                    return "\\multirow{ h } {*} {" + data + "}";
+                }
+                if (h == 0) {
+                    return "\\multicolumn{" + (w + 1).toString() + "}{c}{" + data + "}";
+                }
+                return data; //Should return multi thing here.
+            case "":
+                return data;
+            default:
+                return "THIS CELL SHOULD NOT BE DISPLAYED";
+        }
     }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
@@ -405,8 +449,14 @@ class MyTable extends React.Component<Props, TableState> {
         let latextable = [];
         for (let row = 0; row < this.getRowCount(); row++) {
             let rowarray = this.state.table[row];
-            let rowlatex = ""
-            rowarray.forEach((x) => rowlatex = rowlatex + escapeLatex(x.getData()) + " & "); /* Escapes & characters and backslashes */
+            let rowlatex = "";
+            rowarray.forEach(
+                (x) => {
+                    if (x.isVisible()) {
+                        rowlatex = rowlatex + x.getLatex() + " & ";
+                    }
+                    
+                }); /* Escapes & characters and backslashes */
             rowlatex = rowlatex.slice(0, -3);
             rowlatex = rowlatex + " \\\\";
             latextable.push(rowlatex);
@@ -429,38 +479,6 @@ class MyTable extends React.Component<Props, TableState> {
             </div>
         );
     }
-    /*private getMergeDetails(p: TablePoint) {
-        let width = -1;
-        let height = -1;
-        if (this.state.mergedcells.has(p.toString())) {
-            //calculate width and height of merged cell.
-            let cells = this.state.mergedcells.get(p.toString());
-            let cols = new Set<number>();
-            let rows = new Set<number>();
-            cols.add(p.row);
-            rows.add(p.col);
-            cells?.forEach(
-                (item) => {
-                    let point = new TablePoint(undefined, undefined, item);
-                    cols.add(point.row);
-                    rows.add(point.col);
-                })
-            width = 0;
-            height = 0;
-            rows.forEach(
-                (item) => {
-                    width += this.state.colwidths[item];
-                })
-            cols.forEach(
-                (item) => {
-                    height += this.state.rowheights[item];
-                })
-            width += ((rows.size - 1) * this.state.dividerpixels);
-            height += ((cols.size - 1) * this.state.dividerpixels);
-        }
-        return [width, height];
-    }*/
-
     private drawTable() {
         let rowheights: number[] = [];
         let colwidths: number[] = [];
