@@ -55,6 +55,7 @@ var CellDetails = /** @class */ (function () {
         this.mergeroot = "";
         this.mergechildren = [];
         this.data = "";
+        this.backgroundcolour = "";
         this.width = 0;
         this.height = 0;
         this.p = p;
@@ -99,6 +100,9 @@ var CellDetails = /** @class */ (function () {
     };
     CellDetails.prototype.disableEdit = function () {
         this.editing = false;
+    };
+    CellDetails.prototype.setBackgroundColour = function (chosencolour) {
+        this.backgroundcolour = chosencolour;
     };
     CellDetails.prototype.getTextWidth = function () {
         if (this.isVisible()) {
@@ -216,7 +220,7 @@ var CellDetails = /** @class */ (function () {
     };
     CellDetails.prototype.draw = function (xpixel, ypixel, colwidths, rowheights, horizontaldividersize, verticaldividersize, changeData, selectCell, deSelectCell, enableEditMode, disableEditMode, hlines) {
         if (this.isVisible()) {
-            return (React.createElement(SVGCell, { key: this.p.toString(), cell: this, xpixel: xpixel, ypixel: ypixel, width: this.calculateWidth(colwidths, horizontaldividersize), height: this.calculateHeight(rowheights, verticaldividersize), changeData: changeData, selectcell: selectCell, deselectcell: deSelectCell, enableedit: enableEditMode, disableedit: disableEditMode, selected: this.selected, editing: this.editing, hlines: hlines }));
+            return (React.createElement(SVGCell, { key: this.p.toString(), cell: this, xpixel: xpixel, ypixel: ypixel, width: this.calculateWidth(colwidths, horizontaldividersize), height: this.calculateHeight(rowheights, verticaldividersize), changeData: changeData, selectcell: selectCell, deselectcell: deSelectCell, enableedit: enableEditMode, disableedit: disableEditMode, selected: this.selected, editing: this.editing, hlines: hlines, backgroundcolour: this.backgroundcolour }));
         }
     };
     return CellDetails;
@@ -225,6 +229,7 @@ var MyTable = /** @class */ (function (_super) {
     __extends(MyTable, _super);
     function MyTable(props) {
         var _this = _super.call(this, props) || this;
+        _this.chosencolour = "#ffffff";
         _this.addRow = _this.addRow.bind(_this);
         _this.addCol = _this.addCol.bind(_this);
         _this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true };
@@ -281,6 +286,7 @@ var MyTable = /** @class */ (function (_super) {
         var newtable = this.state.table.map(function (x) { return x; });
         var row = [];
         for (var col = 0; col < this.getColCount(); col++) {
+            console.log("temp");
             var cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
             row.push(cell);
         }
@@ -471,7 +477,7 @@ var MyTable = /** @class */ (function (_super) {
                 {bs}end{cu1}center{cu2}
         */
         return (React.createElement("div", null,
-            React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "cell-input", id: "latextextarea", value: latex })));
+            React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "latex-box", id: "latextextarea", value: latex })));
     };
     MyTable.prototype.drawTable = function () {
         var _this = this;
@@ -495,6 +501,37 @@ var MyTable = /** @class */ (function (_super) {
             React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
             this.convertToLatex()));
     };
+    //Colour Stuff
+    MyTable.prototype.chooseColour = function (e) {
+        this.chosencolour = e.target.value;
+    };
+    MyTable.prototype.setCellBackgroundColours = function () {
+        var _this = this;
+        var selectedcells = this.getSelectedCells();
+        selectedcells.forEach(function (item) {
+            item.setBackgroundColour(_this.chosencolour);
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.deselectAllCells = function () {
+        var selectedcells = this.getSelectedCells();
+        selectedcells.forEach(function (item) {
+            item.deselect();
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.selectAllCells = function () {
+        for (var row = 0; row < this.getRowCount(); row++) {
+            for (var col = 0; col < this.getColCount(); col++) {
+                var cell = this.state.table[row][col];
+                cell.select();
+            }
+        }
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
     MyTable.prototype.render = function () {
         var _this = this;
         return (React.createElement("div", { className: "table-div" },
@@ -504,7 +541,11 @@ var MyTable = /** @class */ (function (_super) {
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.addCol(); } }, "Add Column"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.mergeCells(); } }, "Merge Selected Cells"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.splitCells(); } }, "Split Selected Cells"),
-                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines")),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines"),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.deselectAllCells(); } }, "Deselect All Cells"),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.selectAllCells(); } }, "Select All Cells"),
+                React.createElement("input", { type: "color", onChange: function (e) { return _this.chooseColour(e); }, ref: "colourchooser" }),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBackgroundColours(); } }, "Set Selected Cells to this colour")),
             this.drawTable()));
     };
     MyTable.prototype.copyLatex = function () {
@@ -561,11 +602,23 @@ var SVGCell = /** @class */ (function (_super) {
         }
     };
     SVGCell.prototype.getRectColour = function () {
-        if (this.props.selected) {
+        /*if (this.props.selected) {
             return "red";
-        }
-        else {
+        }*/
+        if (this.props.backgroundcolour == "") {
             return "white";
+        }
+        return this.props.backgroundcolour;
+    };
+    SVGCell.prototype.getBorderColour = function () {
+        //if (this.props.selected) {
+        //    return "yellow";
+        //}
+        return "black";
+    };
+    SVGCell.prototype.getSelectedStyling = function () {
+        if (this.props.selected) {
+            return (React.createElement("rect", { x: this.props.xpixel + 2, y: this.props.ypixel + 2, width: this.props.width - 4, height: this.props.height - 4, fill: "none", stroke: "red", strokeWidth: 2 }));
         }
     };
     SVGCell.prototype.componentDidUpdate = function () {
@@ -573,7 +626,8 @@ var SVGCell = /** @class */ (function (_super) {
     SVGCell.prototype.render = function () {
         var _this = this;
         return (React.createElement("g", { onDoubleClick: function () { return _this.props.enableedit(_this.props.cell); }, onClick: function (e) { return _this.clickCell(e); }, id: "cell:" + this.props.cell.p.toString() },
-            React.createElement("rect", { x: this.props.xpixel, y: this.props.ypixel, width: this.props.width, height: this.props.height, fill: this.getRectColour(), stroke: "black", strokeWidth: this.props.hlines ? 2 : 0 }),
+            React.createElement("rect", { x: this.props.xpixel, y: this.props.ypixel, width: this.props.width, height: this.props.height, fill: this.getRectColour(), stroke: this.getBorderColour(), strokeWidth: this.props.hlines ? 2 : 0 }),
+            this.getSelectedStyling(),
             this.getText()));
     };
     return SVGCell;

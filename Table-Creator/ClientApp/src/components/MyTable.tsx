@@ -49,6 +49,7 @@ class TablePoint {
 }
 
 class CellDetails {
+    
     public p: TablePoint;
     private hidden: boolean = false;
     private editing: boolean = false;
@@ -56,8 +57,10 @@ class CellDetails {
     private mergeroot: string = "";
     private mergechildren: string[] = [];
     private data: string = "";
+    private backgroundcolour: string = "";
     public width: number = 0;
     public height: number = 0;
+    
     constructor(p: TablePoint) {
         this.p = p;
         this.setData(p.toString());
@@ -101,6 +104,9 @@ class CellDetails {
     }
     public disableEdit() {
         this.editing = false;
+    }
+    public setBackgroundColour(chosencolour: string) {
+        this.backgroundcolour = chosencolour;
     }
     private getTextWidth(): number {
         if (this.isVisible()) {
@@ -237,6 +243,7 @@ class CellDetails {
                     selected={this.selected}
                     editing={this.editing}
                     hlines={hlines}
+                    backgroundcolour={this.backgroundcolour}
                 />
             );
         }
@@ -244,11 +251,12 @@ class CellDetails {
 }
 
 class MyTable extends React.Component<Props, TableState> {
+    private chosencolour = "#ffffff";
     constructor(props: Props) {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true};
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true };
         this.testPopulateTable();
     }
     private testPopulateTable() {
@@ -299,6 +307,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = this.state.table.map((x) => x);
         let row: CellDetails[] = [];
         for (let col = 0; col < this.getColCount(); col++) {
+            console.log("temp");
             let cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
             row.push(cell);
         }
@@ -497,7 +506,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         return (
             <div>
-                <textarea readOnly={true} rows={15} cols={15} className="cell-input" id="latextextarea" value={latex}/>
+                <textarea readOnly={true} rows={15} cols={15} className="latex-box" id="latextextarea" value={latex}/>
             </div>
             
         );
@@ -545,6 +554,42 @@ class MyTable extends React.Component<Props, TableState> {
             </div>
         );
     }
+
+    //Colour Stuff
+    private chooseColour(e: React.ChangeEvent<HTMLInputElement>) {
+        this.chosencolour = e.target.value;
+    }
+    private setCellBackgroundColours() {
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.setBackgroundColour(this.chosencolour) 
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
+    private deselectAllCells() {
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.deselect()
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
+    private selectAllCells() {
+        for (let row = 0; row < this.getRowCount(); row++) {
+            for (let col = 0; col < this.getColCount(); col++) {
+                let cell = this.state.table[row][col];
+                cell.select();
+            }
+        }
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
     public render() {
         return (
             <div className="table-div">
@@ -554,7 +599,10 @@ class MyTable extends React.Component<Props, TableState> {
                     <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
-                    
+                    <button className="table-buttons" type="button" onClick={() => this.deselectAllCells()}>Deselect All Cells</button>
+                    <button className="table-buttons" type="button" onClick={() => this.selectAllCells()}>Select All Cells</button>
+                    <input type="color" onChange={e => this.chooseColour(e)} ref="colourchooser" />
+                    <button className="table-buttons" type="button" onClick={() => this.setCellBackgroundColours()}>Set Selected Cells to this colour</button>
                 </div>
 
                 {this.drawTable()}
@@ -589,6 +637,7 @@ interface SVGCellProps {
     selected: boolean
     editing: boolean
     hlines: boolean
+    backgroundcolour: string
 }
 
 class SVGCell extends React.Component<SVGCellProps, {}> {
@@ -648,10 +697,25 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         }
     }
     private getRectColour() {
-        if (this.props.selected) {
+        /*if (this.props.selected) {
             return "red";
-        } else {
+        }*/
+        if (this.props.backgroundcolour == "") {
             return "white"
+        }
+        return this.props.backgroundcolour;
+    }
+    private getBorderColour() {
+        //if (this.props.selected) {
+        //    return "yellow";
+        //}
+        return "black";
+    }
+    private getSelectedStyling() {
+        if (this.props.selected) {
+            return (
+                <rect x={this.props.xpixel + 2} y={this.props.ypixel + 2} width={this.props.width - 4} height={this.props.height - 4} fill="none" stroke="red" strokeWidth={2} />
+            )
         }
     }
     componentDidUpdate() {
@@ -659,7 +723,8 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     public render() {
         return (
             <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={"cell:" + this.props.cell.p.toString()}>
-                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke="black" strokeWidth={this.props.hlines? 2 : 0}/>
+                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 2 : 0} />
+                {this.getSelectedStyling()}
                 {this.getText()}
             </g>
         );
