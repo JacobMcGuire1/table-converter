@@ -28,3 +28,11 @@
     box-sizing: border-box; /* Opera/IE 8+ */
     text-align: center;
 }
+
+.celltext {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

@@ -13,6 +13,9 @@ type TableState = {
     mincellwidth: number;
     dividerpixels: number;
     horizontallines: boolean;
+    selecting: boolean;
+    startselectpoint: [number, number];
+    endselectpoint: [number, number];
 }
 
 function escapeLatex(str: string){
@@ -252,11 +255,12 @@ class CellDetails {
 
 class MyTable extends React.Component<Props, TableState> {
     private chosencolour = "#ffffff";
+    private colourpickerref = React.createRef<HTMLInputElement>();
     constructor(props: Props) {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true };
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0,0] };
         this.testPopulateTable();
     }
     private testPopulateTable() {
@@ -511,6 +515,69 @@ class MyTable extends React.Component<Props, TableState> {
             
         );
     }
+    private svgCreateRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) { //Creates rectangle
+        let canvas = document.getElementById("svg");
+        let rect = canvas!.getBoundingClientRect();
+        let x = ev.clientX - rect.left
+        let y = ev.clientY - rect.top
+
+        this.setState({ selecting: true, startselectpoint: [x, y], endselectpoint: [x, y] });
+    }
+    private svgDestroyRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) { //Destroys rectangle
+        this.setState({ selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0]});
+    }
+    private svgDragRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        if (this.state.selecting) {
+            let canvas = document.getElementById("svg");
+            let rect = canvas!.getBoundingClientRect();
+            let x = ev.clientX - rect.left
+            let y = ev.clientY - rect.top
+
+            this.SelectWithBox();
+
+            this.setState({ selecting: true, endselectpoint: [x, y] });
+        }
+    }
+    private drawSelectRect() {
+        if (this.state.selecting) {
+            let start = this.state.startselectpoint;
+            let end = this.state.endselectpoint;
+            //let size = [Math.abs(this.state.endselectpoint[0] - start[0]), Math.abs(this.state.endselectpoint[1] - start[1])]
+            //return <rect x={start[0]} y={start[1]} width={size[0]} height={size[1]} stroke="black" strokeWidth={2} fill="none" />
+            return (
+                <rect
+                    id="svgselectrect"
+                    fill="rgba(255,0,0,0.3)"
+                    x={Math.min(start[0], end[0])}
+                    y={Math.min(start[1], end[1])}
+                    width={Math.abs(start[0] - end[0])}
+                    height={Math.abs(start[1] - end[1])}
+                />
+            );
+        }
+    }
+    //Selects the cells highlighted by the box by checking for collision with each cell.
+    private SelectWithBox() {
+        let selectionrect = document.getElementById("svgselectrect")!.getBoundingClientRect()!;
+        for (let row = 0; row < this.getRowCount(); row++) {
+            for (let col = 0; col < this.getColCount(); col++) {
+                let cell = this.state.table[row][col];
+                let svggroup = document.getElementById(cell.p.toString()) as HTMLElement;
+                let rect = svggroup!.getBoundingClientRect();
+
+                if (selectionrect.left < rect.left + rect.width &&
+                    selectionrect.left + selectionrect.width > rect.left &&
+                    selectionrect.top < rect.top + rect.height &&
+                    selectionrect.top + selectionrect.height > rect.top)
+                {
+                    cell.select();
+                }
+                else {
+                    cell.deselect();
+                }
+            }
+        }
+    }
     private drawTable() {
         let rowheights: number[] = [];
         let colwidths: number[] = [];
@@ -525,7 +592,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         return (
             <div>
-                <svg width={tablewidth} height={ tableheight } id="svg">
+                <svg width={tablewidth} height={tableheight} id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
                     {this.state.table.map((innerArray, row) => (
                         innerArray.map(
                             (cell, col) =>
@@ -545,6 +612,7 @@ class MyTable extends React.Component<Props, TableState> {
                                 )
                         )
                     ))}
+                    {this.drawSelectRect()}
                 </svg>
 
                 <br />
@@ -590,20 +658,31 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: newtable });
     }
 
+    componentDidMount() {
+        this.colourpickerref.current!.value = this.chosencolour;
+    }
+
     public render() {
         return (
             <div className="table-div">
                 <h2>Table</h2>
-                <div className="table-buttons-div"><button type="button" onClick={() => this.addRow()}>Add Row</button>
+                
+                <div className="table-buttons-div">
+                    <h3>Global Controls</h3>
+                    <button type="button" onClick={() => this.addRow()}>Add Row</button>
                     <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
                     <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
                     <button className="table-buttons" type="button" onClick={() => this.deselectAllCells()}>Deselect All Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.selectAllCells()}>Select All Cells</button>
-                    <input type="color" onChange={e => this.chooseColour(e)} ref="colourchooser" />
+                </div>
+                <div className="table-buttons-div">
+                    <h3>Selected Cell Controls</h3>
+                    <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} />
                     <button className="table-buttons" type="button" onClick={() => this.setCellBackgroundColours()}>Set Selected Cells to this colour</button>
                 </div>
+
 
                 {this.drawTable()}
             </div>
@@ -662,7 +741,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
             if (lines.length === 1) {
                 return (
                     <g>
-                        <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"}>{lines[0]}</text>
+                        <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{lines[0]}</text>
                     </g>
                 );
             }
@@ -671,7 +750,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
                     {
                         lines.map(
                             (line, i) =>
-                                <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 9 + (i * 20)} textAnchor={"middle"} alignmentBaseline={"central"}>{line}</text>
+                                <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 9 + (i * 20)} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{line}</text>
                         )
 
                     }
@@ -722,7 +801,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     }
     public render() {
         return (
-            <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={"cell:" + this.props.cell.p.toString()}>
+            <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={this.props.cell.p.toString()} className="ACell">
                 <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 2 : 0} />
                 {this.getSelectedStyling()}
                 {this.getText()}
