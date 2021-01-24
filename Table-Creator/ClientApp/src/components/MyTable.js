@@ -488,6 +488,7 @@ var MyTable = /** @class */ (function (_super) {
         this.setState({ selecting: true, startselectpoint: [x, y], endselectpoint: [x, y] });
     };
     MyTable.prototype.svgDestroyRect = function (ev) {
+        this.svgDragRect(ev);
         this.setState({ selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0] });
     };
     MyTable.prototype.svgDragRect = function (ev) {
@@ -515,19 +516,36 @@ var MyTable = /** @class */ (function (_super) {
         for (var row = 0; row < this.getRowCount(); row++) {
             for (var col = 0; col < this.getColCount(); col++) {
                 var cell = this.state.table[row][col];
-                var svggroup = document.getElementById(cell.p.toString());
-                var rect = svggroup.getBoundingClientRect();
-                if (selectionrect.left < rect.left + rect.width &&
-                    selectionrect.left + selectionrect.width > rect.left &&
-                    selectionrect.top < rect.top + rect.height &&
-                    selectionrect.top + selectionrect.height > rect.top) {
-                    cell.select();
-                }
-                else {
-                    cell.deselect();
+                if (cell.isVisible()) {
+                    var svggroup = document.getElementById(cell.p.toString());
+                    var rect = svggroup.getBoundingClientRect();
+                    if (selectionrect.left < rect.left + rect.width &&
+                        selectionrect.left + selectionrect.width > rect.left &&
+                        selectionrect.top < rect.top + rect.height &&
+                        selectionrect.top + selectionrect.height > rect.top) {
+                        cell.select();
+                    }
+                    else {
+                        cell.deselect();
+                    }
                 }
             }
         }
+    };
+    MyTable.prototype.convertToImage = function () {
+        var svgthing = document.getElementById("svg");
+        var svgData = new XMLSerializer().serializeToString(svgthing);
+        var htmlcanvas = document.getElementById("mycanvas");
+        htmlcanvas.className = "show";
+        var ctx = htmlcanvas.getContext('2d');
+        var img = document.createElement("img");
+        img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svgData));
+        //let a = document.getElementById("dlbutton")!;
+        //a.setAttribute("href", "data:application/octet-stream;base64,");
+        img.onload = function () {
+            ctx.drawImage(img, 0, 0);
+            console.log(htmlcanvas.toDataURL("image/png"));
+        };
     };
     MyTable.prototype.drawTable = function () {
         var _this = this;
@@ -551,7 +569,8 @@ var MyTable = /** @class */ (function (_super) {
             React.createElement("br", null),
             React.createElement("h2", null, "LaTeX"),
             React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
-            this.convertToLatex()));
+            this.convertToLatex(),
+            React.createElement("canvas", { id: "mycanvas", className: "hide", width: tablewidth, height: tableheight })));
     };
     //Colour Stuff
     MyTable.prototype.chooseColour = function (e) {
@@ -599,7 +618,8 @@ var MyTable = /** @class */ (function (_super) {
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.splitCells(); } }, "Split Selected Cells"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines"),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.deselectAllCells(); } }, "Deselect All Cells"),
-                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.selectAllCells(); } }, "Select All Cells")),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.selectAllCells(); } }, "Select All Cells"),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.convertToImage(); } }, "Convert to image")),
             React.createElement("div", { className: "table-buttons-div" },
                 React.createElement("h3", null, "Selected Cell Controls"),
                 React.createElement("input", { type: "color", onChange: function (e) { return _this.chooseColour(e); }, ref: this.colourpickerref }),

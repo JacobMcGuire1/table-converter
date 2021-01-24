@@ -524,6 +524,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ selecting: true, startselectpoint: [x, y], endselectpoint: [x, y] });
     }
     private svgDestroyRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) { //Destroys rectangle
+        this.svgDragRect(ev);
         this.setState({ selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0]});
     }
     private svgDragRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) {
@@ -562,21 +563,45 @@ class MyTable extends React.Component<Props, TableState> {
         for (let row = 0; row < this.getRowCount(); row++) {
             for (let col = 0; col < this.getColCount(); col++) {
                 let cell = this.state.table[row][col];
-                let svggroup = document.getElementById(cell.p.toString()) as HTMLElement;
-                let rect = svggroup!.getBoundingClientRect();
+                if (cell.isVisible()) {
+                    let svggroup = document.getElementById(cell.p.toString()) as HTMLElement;
+                    let rect = svggroup!.getBoundingClientRect();
 
-                if (selectionrect.left < rect.left + rect.width &&
-                    selectionrect.left + selectionrect.width > rect.left &&
-                    selectionrect.top < rect.top + rect.height &&
-                    selectionrect.top + selectionrect.height > rect.top)
-                {
-                    cell.select();
-                }
-                else {
-                    cell.deselect();
+                    if (selectionrect.left < rect.left + rect.width &&
+                        selectionrect.left + selectionrect.width > rect.left &&
+                        selectionrect.top < rect.top + rect.height &&
+                        selectionrect.top + selectionrect.height > rect.top) {
+                        cell.select();
+                    }
+                    else {
+                        cell.deselect();
+                    }
                 }
             }
         }
+    }
+    private convertToImage() {
+        let svgthing = document.getElementById("svg");
+        let svgData = new XMLSerializer().serializeToString(svgthing!);
+
+        let htmlcanvas = document.getElementById("mycanvas")! as HTMLCanvasElement;
+
+        htmlcanvas.className = "show";
+
+        let ctx = htmlcanvas.getContext('2d')!;
+
+        let img = document.createElement("img");
+        img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svgData));
+
+        //let a = document.getElementById("dlbutton")!;
+        //a.setAttribute("href", "data:application/octet-stream;base64,");
+        
+
+        img.onload = function () {
+            ctx.drawImage(img, 0, 0);
+            console.log(htmlcanvas.toDataURL("image/png"));
+        };
+
     }
     private drawTable() {
         let rowheights: number[] = [];
@@ -619,6 +644,7 @@ class MyTable extends React.Component<Props, TableState> {
                 <h2>LaTeX</h2>
                 <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
                 {this.convertToLatex()}
+                <canvas id="mycanvas" className="hide" width={tablewidth} height={tableheight} />
             </div>
         );
     }
@@ -676,6 +702,7 @@ class MyTable extends React.Component<Props, TableState> {
                     <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
                     <button className="table-buttons" type="button" onClick={() => this.deselectAllCells()}>Deselect All Cells</button>
                     <button className="table-buttons" type="button" onClick={() => this.selectAllCells()}>Select All Cells</button>
+                    <button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Convert to image</button>
                 </div>
                 <div className="table-buttons-div">
                     <h3>Selected Cell Controls</h3>
