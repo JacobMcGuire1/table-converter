@@ -263,6 +263,8 @@ class MyTable extends React.Component<Props, TableState> {
         this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0,0] };
         this.testPopulateTable();
     }
+
+    //Creates and populates the initial table.
     private testPopulateTable() {
         for (let row = 0; row < 5; row++) {
             let rowarray: CellDetails[] = [];
@@ -273,6 +275,10 @@ class MyTable extends React.Component<Props, TableState> {
             this.state.table.push(rowarray);
         }
     }
+
+    /* 
+     * HELPER FUNCTIONS
+     */
     private getRowCount(): number {
         return this.state.table.length;
     }
@@ -307,42 +313,7 @@ class MyTable extends React.Component<Props, TableState> {
         if (this.state.mincellheight > largestheight) return this.state.mincellheight;
         return largestheight;
     }
-    private addRow() {
-        let newtable = this.state.table.map((x) => x);
-        let row: CellDetails[] = [];
-        for (let col = 0; col < this.getColCount(); col++) {
-            console.log("temp");
-            let cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
-            row.push(cell);
-        }
-        newtable.push(row);
-        this.setState({ table: newtable });
-    }
-    private addCol() {
-        let newtable = this.state.table.map((x) => x);
-        let colcount = this.getColCount();
-        for (let row = 0; row < this.getRowCount(); row++) {
-            let cell = new CellDetails(new TablePoint(row, colcount));
-            console.log(cell.p.toString());
-            newtable[row].push(cell);
-        }
-        this.setState({ table: newtable });
-    }
-    private modifyCellData(cell: CellDetails, data: string) {
-        let newtable = this.state.table.map((x) => x);
-        cell.setData(data);
-        this.setState({ table: newtable });
-    }
-    private selectCell(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
-        cell.select();
-        this.setState({ table: newtable });
-    }
-    private deselectCell(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
-        cell.deselect();
-        this.setState({ table: newtable });
-    }
+    //Returns the selected cells as a list.
     private getSelectedCells() {
         let selectedcells = [];
         for (let row = 0; row < this.getRowCount(); row++) {
@@ -355,6 +326,114 @@ class MyTable extends React.Component<Props, TableState> {
         }
         return selectedcells;
     }
+
+    //Add a row to the bottom of the table.
+    private addRow() {
+        let newtable = this.state.table.map((x) => x);
+        let row: CellDetails[] = [];
+        for (let col = 0; col < this.getColCount(); col++) {
+            console.log("temp");
+            let cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
+            row.push(cell);
+        }
+        newtable.push(row);
+        this.setState({ table: newtable });
+    }
+    //Add a column to the right of the table.
+    private addCol() {
+        let newtable = this.state.table.map((x) => x);
+        let colcount = this.getColCount();
+        for (let row = 0; row < this.getRowCount(); row++) {
+            let cell = new CellDetails(new TablePoint(row, colcount));
+            console.log(cell.p.toString());
+            newtable[row].push(cell);
+        }
+        this.setState({ table: newtable });
+    }
+
+    /*
+     * Callback functions for interaction with individual cells
+     */
+    private selectCell(cell: CellDetails) {
+        let newtable = this.state.table.map((x) => x);
+        cell.select();
+        this.setState({ table: newtable });
+    }
+    private deselectCell(cell: CellDetails) {
+        let newtable = this.state.table.map((x) => x);
+        cell.deselect();
+        this.setState({ table: newtable });
+    }
+    private enableCellEdit(cell: CellDetails) {
+        let newtable = this.state.table.map((x) => x);
+        cell.enableEdit();
+        this.setState({ table: newtable });
+    }
+    private disableCellEdit(cell: CellDetails) {
+        let newtable = this.state.table.map((x) => x);
+        cell.disableEdit();
+        this.setState({ table: newtable });
+    }
+    private modifyCellData(cell: CellDetails, data: string) {
+        let newtable = this.state.table.map((x) => x);
+        cell.setData(data);
+        this.setState({ table: newtable });
+    }
+
+
+    /*
+     * Functions called when one of the buttons at the top of the table is clicked.
+     */
+
+    //Copies the latex to the clipboard.
+    private copyLatex(): void {
+        let copyText = document.getElementById("latextextarea");
+        (copyText! as HTMLTextAreaElement).select();
+        (copyText! as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        let sel = document.getSelection();
+        sel!.removeAllRanges();
+    }
+
+    private chooseColour(e: React.ChangeEvent<HTMLInputElement>) {
+        this.chosencolour = e.target.value;
+    }
+    //Sets the colour of the selected cells to the chosen colour.
+    private setCellBackgroundColours() {
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.setBackgroundColour(this.chosencolour)
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
+    private deselectAllCells() {
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.deselect()
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
+    private selectAllCells() {
+        for (let row = 0; row < this.getRowCount(); row++) {
+            for (let col = 0; col < this.getColCount(); col++) {
+                let cell = this.state.table[row][col];
+                cell.select();
+            }
+        }
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
+    //Merges the currently selected cells.
+    //Uses the outer cells to create a rectangle of cells to merge if the selection is not a rectangle already.
+    //Also includes the borders of other merged cells in this calculation.
+    //Recurses when these extra cells are selected to check for new cells that should be included, otherwise performs the merge.
     private mergeCells() {
         let selectedcells = this.getSelectedCells();
         if (selectedcells.length <= 1) return;
@@ -363,8 +442,6 @@ class MyTable extends React.Component<Props, TableState> {
         let mincol = Infinity;
         let maxrow = 0;
         let maxcol = 0;
-
-       
         selectedcells.forEach(
             (item) => {
                 let p = item.p;
@@ -390,7 +467,6 @@ class MyTable extends React.Component<Props, TableState> {
                 if (!cell.p.equals(root.p)) {
                     children.push(cell);
                 }
-
                 //The following code ensures that any other contained merges are incorporated into this merge.
                 if (!cell.isSelected()) recurse = true;
                 cell.select();
@@ -422,6 +498,8 @@ class MyTable extends React.Component<Props, TableState> {
             this.setState({ table: newtable });
         }
     }
+
+    //Splits the selected merged cells.
     private splitCells() {
         let selectedcells = this.getSelectedCells();
         if (selectedcells.length === 0) return;
@@ -450,16 +528,10 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = this.state.table.map((x) => x);
         this.setState({ table: newtable });
     }
-    private enableCellEdit(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
-        cell.enableEdit();
-        this.setState({ table: newtable });
-    }
-    private disableCellEdit(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
-        cell.disableEdit();
-        this.setState({ table: newtable });
-    }
+
+    /*
+     * Generates a latex representation of the current table.
+     */
     private convertToLatex() {
         let collatex = "|";
         for (let col = 0; col < this.getColCount(); col++) {
@@ -474,7 +546,6 @@ class MyTable extends React.Component<Props, TableState> {
                 (x) => {
                     rowlatex = rowlatex + x.getLatex();
                 }); /* Escapes & characters and backslashes */
-            //rowlatex = rowlatex.slice(0, -3);
             if (rowlatex.charAt(rowlatex.length - 1) === '&') rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
             if (this.state.horizontallines) rowlatex = rowlatex + " \\hline";
@@ -497,17 +568,6 @@ class MyTable extends React.Component<Props, TableState> {
         latex += "\n\\end{tabular}";
         latex += "\n\\end{center}";
 
-        /*
-         * {bs}begin{cu1}center{cu2}
-                <br />
-                {bs}begin{cu1}tabular{cu2}{cu1}{collatex}{cu2}
-                <br />
-                {latextable.map((x, i) => <div key={i}>{x}</div>)}
-                {bs}end{cu1}tabular{cu2}
-                <br />
-                {bs}end{cu1}center{cu2}
-        */
-
         return (
             <div>
                 <textarea readOnly={true} rows={15} cols={15} className="latex-box" id="latextextarea" value={latex}/>
@@ -515,36 +575,41 @@ class MyTable extends React.Component<Props, TableState> {
             
         );
     }
+
+    /*
+     * Functions used for clicking and dragging to select cells.
+     */
+
+    //Initialises the select box when the mouse is clicked down.
     private svgCreateRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) { //Creates rectangle
         let canvas = document.getElementById("svg");
         let rect = canvas!.getBoundingClientRect();
         let x = ev.clientX - rect.left
         let y = ev.clientY - rect.top
-
         this.setState({ selecting: true, startselectpoint: [x, y], endselectpoint: [x, y] });
     }
-    private svgDestroyRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) { //Destroys rectangle
+    //Destroys the box after performing one last update of the box's position.
+    //This triggers when click is released or the mouse moves outside of the table.
+    private svgDestroyRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) {
         this.svgDragRect(ev);
         this.setState({ selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0]});
     }
+    //Updates the coordinates of the box as the mouse moves (while click is held).
     private svgDragRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) {
         if (this.state.selecting) {
             let canvas = document.getElementById("svg");
             let rect = canvas!.getBoundingClientRect();
             let x = ev.clientX - rect.left
             let y = ev.clientY - rect.top
-
             this.SelectWithBox();
-
             this.setState({ selecting: true, endselectpoint: [x, y] });
         }
     }
+    //Draws the box using the currently supplied coordinates.
     private drawSelectRect() {
         if (this.state.selecting) {
             let start = this.state.startselectpoint;
             let end = this.state.endselectpoint;
-            //let size = [Math.abs(this.state.endselectpoint[0] - start[0]), Math.abs(this.state.endselectpoint[1] - start[1])]
-            //return <rect x={start[0]} y={start[1]} width={size[0]} height={size[1]} stroke="black" strokeWidth={2} fill="none" />
             return (
                 <rect
                     id="svgselectrect"
@@ -580,6 +645,11 @@ class MyTable extends React.Component<Props, TableState> {
             }
         }
     }
+
+    /*
+     * Converts the SVG table to an image.
+     * This can then be viewed and downloaded.
+     */
     private convertToImage() {
         let svgthing = document.getElementById("svg");
         let svgData = new XMLSerializer().serializeToString(svgthing!);
@@ -595,14 +665,16 @@ class MyTable extends React.Component<Props, TableState> {
 
         //let a = document.getElementById("dlbutton")!;
         //a.setAttribute("href", "data:application/octet-stream;base64,");
-        
 
         img.onload = function () {
             ctx.drawImage(img, 0, 0);
             console.log(htmlcanvas.toDataURL("image/png"));
         };
-
     }
+
+    /*
+     * Draws the current representation of the table.
+     */
     private drawTable() {
         let rowheights: number[] = [];
         let colwidths: number[] = [];
@@ -649,48 +721,19 @@ class MyTable extends React.Component<Props, TableState> {
         );
     }
 
-    //Colour Stuff
-    private chooseColour(e: React.ChangeEvent<HTMLInputElement>) {
-        this.chosencolour = e.target.value;
-    }
-    private setCellBackgroundColours() {
-        let selectedcells = this.getSelectedCells();
-        selectedcells.forEach(
-            (item) => {
-                item.setBackgroundColour(this.chosencolour) 
-            });
-        let newtable = this.state.table.map((x) => x);
-        this.setState({ table: newtable });
-    }
-
-    private deselectAllCells() {
-        let selectedcells = this.getSelectedCells();
-        selectedcells.forEach(
-            (item) => {
-                item.deselect()
-            });
-        let newtable = this.state.table.map((x) => x);
-        this.setState({ table: newtable });
-    }
-
-    private selectAllCells() {
-        for (let row = 0; row < this.getRowCount(); row++) {
-            for (let col = 0; col < this.getColCount(); col++) {
-                let cell = this.state.table[row][col];
-                cell.select();
-            }
-        }
-        let newtable = this.state.table.map((x) => x);
-        this.setState({ table: newtable });
-    }
+    
 
     componentDidMount() {
         this.colourpickerref.current!.value = this.chosencolour;
     }
 
+    private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+
+    }
+
     public render() {
         return (
-            <div className="table-div">
+            <div className="table-div" onClick={(e) => this.bigClick(e)}>
                 <h2>Table</h2>
                 
                 <div className="table-buttons-div">
@@ -715,14 +758,7 @@ class MyTable extends React.Component<Props, TableState> {
             </div>
         );
     }
-    copyLatex(): void {
-        let copyText = document.getElementById("latextextarea");
-        (copyText! as HTMLTextAreaElement).select();
-        (copyText! as HTMLTextAreaElement).setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        let sel = document.getSelection();
-        sel!.removeAllRanges();
-    }
+    
 }
 
 export default MyTable;

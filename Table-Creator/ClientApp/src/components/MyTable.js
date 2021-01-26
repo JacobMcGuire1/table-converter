@@ -237,6 +237,7 @@ var MyTable = /** @class */ (function (_super) {
         _this.testPopulateTable();
         return _this;
     }
+    //Creates and populates the initial table.
     MyTable.prototype.testPopulateTable = function () {
         for (var row = 0; row < 5; row++) {
             var rowarray = [];
@@ -247,6 +248,9 @@ var MyTable = /** @class */ (function (_super) {
             this.state.table.push(rowarray);
         }
     };
+    /*
+     * HELPER FUNCTIONS
+     */
     MyTable.prototype.getRowCount = function () {
         return this.state.table.length;
     };
@@ -283,42 +287,7 @@ var MyTable = /** @class */ (function (_super) {
             return this.state.mincellheight;
         return largestheight;
     };
-    MyTable.prototype.addRow = function () {
-        var newtable = this.state.table.map(function (x) { return x; });
-        var row = [];
-        for (var col = 0; col < this.getColCount(); col++) {
-            console.log("temp");
-            var cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
-            row.push(cell);
-        }
-        newtable.push(row);
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.addCol = function () {
-        var newtable = this.state.table.map(function (x) { return x; });
-        var colcount = this.getColCount();
-        for (var row = 0; row < this.getRowCount(); row++) {
-            var cell = new CellDetails(new TablePoint(row, colcount));
-            console.log(cell.p.toString());
-            newtable[row].push(cell);
-        }
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.modifyCellData = function (cell, data) {
-        var newtable = this.state.table.map(function (x) { return x; });
-        cell.setData(data);
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.selectCell = function (cell) {
-        var newtable = this.state.table.map(function (x) { return x; });
-        cell.select();
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.deselectCell = function (cell) {
-        var newtable = this.state.table.map(function (x) { return x; });
-        cell.deselect();
-        this.setState({ table: newtable });
-    };
+    //Returns the selected cells as a list.
     MyTable.prototype.getSelectedCells = function () {
         var selectedcells = [];
         for (var row = 0; row < this.getRowCount(); row++) {
@@ -331,6 +300,104 @@ var MyTable = /** @class */ (function (_super) {
         }
         return selectedcells;
     };
+    //Add a row to the bottom of the table.
+    MyTable.prototype.addRow = function () {
+        var newtable = this.state.table.map(function (x) { return x; });
+        var row = [];
+        for (var col = 0; col < this.getColCount(); col++) {
+            console.log("temp");
+            var cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
+            row.push(cell);
+        }
+        newtable.push(row);
+        this.setState({ table: newtable });
+    };
+    //Add a column to the right of the table.
+    MyTable.prototype.addCol = function () {
+        var newtable = this.state.table.map(function (x) { return x; });
+        var colcount = this.getColCount();
+        for (var row = 0; row < this.getRowCount(); row++) {
+            var cell = new CellDetails(new TablePoint(row, colcount));
+            console.log(cell.p.toString());
+            newtable[row].push(cell);
+        }
+        this.setState({ table: newtable });
+    };
+    /*
+     * Callback functions for interaction with individual cells
+     */
+    MyTable.prototype.selectCell = function (cell) {
+        var newtable = this.state.table.map(function (x) { return x; });
+        cell.select();
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.deselectCell = function (cell) {
+        var newtable = this.state.table.map(function (x) { return x; });
+        cell.deselect();
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.enableCellEdit = function (cell) {
+        var newtable = this.state.table.map(function (x) { return x; });
+        cell.enableEdit();
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.disableCellEdit = function (cell) {
+        var newtable = this.state.table.map(function (x) { return x; });
+        cell.disableEdit();
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.modifyCellData = function (cell, data) {
+        var newtable = this.state.table.map(function (x) { return x; });
+        cell.setData(data);
+        this.setState({ table: newtable });
+    };
+    /*
+     * Functions called when one of the buttons at the top of the table is clicked.
+     */
+    //Copies the latex to the clipboard.
+    MyTable.prototype.copyLatex = function () {
+        var copyText = document.getElementById("latextextarea");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        var sel = document.getSelection();
+        sel.removeAllRanges();
+    };
+    MyTable.prototype.chooseColour = function (e) {
+        this.chosencolour = e.target.value;
+    };
+    //Sets the colour of the selected cells to the chosen colour.
+    MyTable.prototype.setCellBackgroundColours = function () {
+        var _this = this;
+        var selectedcells = this.getSelectedCells();
+        selectedcells.forEach(function (item) {
+            item.setBackgroundColour(_this.chosencolour);
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.deselectAllCells = function () {
+        var selectedcells = this.getSelectedCells();
+        selectedcells.forEach(function (item) {
+            item.deselect();
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
+    MyTable.prototype.selectAllCells = function () {
+        for (var row = 0; row < this.getRowCount(); row++) {
+            for (var col = 0; col < this.getColCount(); col++) {
+                var cell = this.state.table[row][col];
+                cell.select();
+            }
+        }
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
+    //Merges the currently selected cells.
+    //Uses the outer cells to create a rectangle of cells to merge if the selection is not a rectangle already.
+    //Also includes the borders of other merged cells in this calculation.
+    //Recurses when these extra cells are selected to check for new cells that should be included, otherwise performs the merge.
     MyTable.prototype.mergeCells = function () {
         var _this = this;
         var selectedcells = this.getSelectedCells();
@@ -393,6 +460,7 @@ var MyTable = /** @class */ (function (_super) {
             this.setState({ table: newtable });
         }
     };
+    //Splits the selected merged cells.
     MyTable.prototype.splitCells = function () {
         var _this = this;
         var selectedcells = this.getSelectedCells();
@@ -420,16 +488,9 @@ var MyTable = /** @class */ (function (_super) {
         var newtable = this.state.table.map(function (x) { return x; });
         this.setState({ table: newtable });
     };
-    MyTable.prototype.enableCellEdit = function (cell) {
-        var newtable = this.state.table.map(function (x) { return x; });
-        cell.enableEdit();
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.disableCellEdit = function (cell) {
-        var newtable = this.state.table.map(function (x) { return x; });
-        cell.disableEdit();
-        this.setState({ table: newtable });
-    };
+    /*
+     * Generates a latex representation of the current table.
+     */
     MyTable.prototype.convertToLatex = function () {
         var collatex = "|";
         for (var col = 0; col < this.getColCount(); col++) {
@@ -442,7 +503,6 @@ var MyTable = /** @class */ (function (_super) {
             rowarray.forEach(function (x) {
                 rowlatex = rowlatex + x.getLatex();
             }); /* Escapes & characters and backslashes */
-            //rowlatex = rowlatex.slice(0, -3);
             if (rowlatex.charAt(rowlatex.length - 1) === '&')
                 rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
@@ -467,19 +527,13 @@ var MyTable = /** @class */ (function (_super) {
         });
         latex += "\n\\end{tabular}";
         latex += "\n\\end{center}";
-        /*
-         * {bs}begin{cu1}center{cu2}
-                <br />
-                {bs}begin{cu1}tabular{cu2}{cu1}{collatex}{cu2}
-                <br />
-                {latextable.map((x, i) => <div key={i}>{x}</div>)}
-                {bs}end{cu1}tabular{cu2}
-                <br />
-                {bs}end{cu1}center{cu2}
-        */
         return (React.createElement("div", null,
             React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "latex-box", id: "latextextarea", value: latex })));
     };
+    /*
+     * Functions used for clicking and dragging to select cells.
+     */
+    //Initialises the select box when the mouse is clicked down.
     MyTable.prototype.svgCreateRect = function (ev) {
         var canvas = document.getElementById("svg");
         var rect = canvas.getBoundingClientRect();
@@ -487,10 +541,13 @@ var MyTable = /** @class */ (function (_super) {
         var y = ev.clientY - rect.top;
         this.setState({ selecting: true, startselectpoint: [x, y], endselectpoint: [x, y] });
     };
+    //Destroys the box after performing one last update of the box's position.
+    //This triggers when click is released or the mouse moves outside of the table.
     MyTable.prototype.svgDestroyRect = function (ev) {
         this.svgDragRect(ev);
         this.setState({ selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0] });
     };
+    //Updates the coordinates of the box as the mouse moves (while click is held).
     MyTable.prototype.svgDragRect = function (ev) {
         if (this.state.selecting) {
             var canvas = document.getElementById("svg");
@@ -501,12 +558,11 @@ var MyTable = /** @class */ (function (_super) {
             this.setState({ selecting: true, endselectpoint: [x, y] });
         }
     };
+    //Draws the box using the currently supplied coordinates.
     MyTable.prototype.drawSelectRect = function () {
         if (this.state.selecting) {
             var start = this.state.startselectpoint;
             var end = this.state.endselectpoint;
-            //let size = [Math.abs(this.state.endselectpoint[0] - start[0]), Math.abs(this.state.endselectpoint[1] - start[1])]
-            //return <rect x={start[0]} y={start[1]} width={size[0]} height={size[1]} stroke="black" strokeWidth={2} fill="none" />
             return (React.createElement("rect", { id: "svgselectrect", fill: "rgba(255,0,0,0.3)", x: Math.min(start[0], end[0]), y: Math.min(start[1], end[1]), width: Math.abs(start[0] - end[0]), height: Math.abs(start[1] - end[1]) }));
         }
     };
@@ -532,6 +588,10 @@ var MyTable = /** @class */ (function (_super) {
             }
         }
     };
+    /*
+     * Converts the SVG table to an image.
+     * This can then be viewed and downloaded.
+     */
     MyTable.prototype.convertToImage = function () {
         var svgthing = document.getElementById("svg");
         var svgData = new XMLSerializer().serializeToString(svgthing);
@@ -547,6 +607,9 @@ var MyTable = /** @class */ (function (_super) {
             console.log(htmlcanvas.toDataURL("image/png"));
         };
     };
+    /*
+     * Draws the current representation of the table.
+     */
     MyTable.prototype.drawTable = function () {
         var _this = this;
         var rowheights = [];
@@ -572,43 +635,14 @@ var MyTable = /** @class */ (function (_super) {
             this.convertToLatex(),
             React.createElement("canvas", { id: "mycanvas", className: "hide", width: tablewidth, height: tableheight })));
     };
-    //Colour Stuff
-    MyTable.prototype.chooseColour = function (e) {
-        this.chosencolour = e.target.value;
-    };
-    MyTable.prototype.setCellBackgroundColours = function () {
-        var _this = this;
-        var selectedcells = this.getSelectedCells();
-        selectedcells.forEach(function (item) {
-            item.setBackgroundColour(_this.chosencolour);
-        });
-        var newtable = this.state.table.map(function (x) { return x; });
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.deselectAllCells = function () {
-        var selectedcells = this.getSelectedCells();
-        selectedcells.forEach(function (item) {
-            item.deselect();
-        });
-        var newtable = this.state.table.map(function (x) { return x; });
-        this.setState({ table: newtable });
-    };
-    MyTable.prototype.selectAllCells = function () {
-        for (var row = 0; row < this.getRowCount(); row++) {
-            for (var col = 0; col < this.getColCount(); col++) {
-                var cell = this.state.table[row][col];
-                cell.select();
-            }
-        }
-        var newtable = this.state.table.map(function (x) { return x; });
-        this.setState({ table: newtable });
-    };
     MyTable.prototype.componentDidMount = function () {
         this.colourpickerref.current.value = this.chosencolour;
     };
+    MyTable.prototype.bigClick = function (e) {
+    };
     MyTable.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", { className: "table-div" },
+        return (React.createElement("div", { className: "table-div", onClick: function (e) { return _this.bigClick(e); } },
             React.createElement("h2", null, "Table"),
             React.createElement("div", { className: "table-buttons-div" },
                 React.createElement("h3", null, "Global Controls"),
@@ -625,14 +659,6 @@ var MyTable = /** @class */ (function (_super) {
                 React.createElement("input", { type: "color", onChange: function (e) { return _this.chooseColour(e); }, ref: this.colourpickerref }),
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBackgroundColours(); } }, "Set Selected Cells to this colour")),
             this.drawTable()));
-    };
-    MyTable.prototype.copyLatex = function () {
-        var copyText = document.getElementById("latextextarea");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        var sel = document.getSelection();
-        sel.removeAllRanges();
     };
     return MyTable;
 }(React.Component));
