@@ -24,6 +24,10 @@ function escapeLatex(str: string){
     return str;
 }
 
+//Stolen 
+function escapeHTML(str: string) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 
 class TablePoint {
     public row: number;
@@ -577,6 +581,33 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     /*
+     * Generates a HTML representation of the current table.
+     */
+    private convertToHTML() {
+        let html = "<table>\n";
+
+        for (let i = 0; i < this.getRowCount(); i++) {
+            let row = this.getRow(i);
+            html += "<tr>\n";
+
+            row.forEach(
+                (x) => {
+                    html += "<td>" + escapeHTML(x.getData()) + "</td>\n";
+                }); /* TODO: Escape HTML */
+
+            html += "</tr>\n";
+        }
+
+        html += "</table>\n";
+
+        return (
+            <div>
+                <textarea readOnly={true} rows={15} cols={15} className="latex-box" id="htmltextarea" value={html} />
+            </div>
+        );
+    }
+
+    /*
      * Functions used for clicking and dragging to select cells.
      */
 
@@ -663,13 +694,18 @@ class MyTable extends React.Component<Props, TableState> {
         let img = document.createElement("img");
         img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svgData));
 
+        let w = window.open("")!;
+        w.document.write(img.outerHTML);
+
+        //window.open(htmlcanvas.toDataURL("image/png"));
+
         //let a = document.getElementById("dlbutton")!;
         //a.setAttribute("href", "data:application/octet-stream;base64,");
 
-        img.onload = function () {
-            ctx.drawImage(img, 0, 0);
-            console.log(htmlcanvas.toDataURL("image/png"));
-        };
+        //img.onload = function () {
+        //    ctx.drawImage(img, 0, 0);
+        //    console.log(htmlcanvas.toDataURL("image/png"));
+        //};
     }
 
     /*
@@ -716,6 +752,7 @@ class MyTable extends React.Component<Props, TableState> {
                 <h2>LaTeX</h2>
                 <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
                 {this.convertToLatex()}
+                {this.convertToHTML()}
                 <canvas id="mycanvas" className="hide" width={tablewidth} height={tableheight} />
             </div>
         );

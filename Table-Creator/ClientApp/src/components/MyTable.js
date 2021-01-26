@@ -21,6 +21,10 @@ function escapeLatex(str) {
     str = str.split("&").join("\\&");
     return str;
 }
+//Stolen 
+function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 var TablePoint = /** @class */ (function () {
     function TablePoint(row, col, p) {
         if (p === undefined) {
@@ -531,6 +535,23 @@ var MyTable = /** @class */ (function (_super) {
             React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "latex-box", id: "latextextarea", value: latex })));
     };
     /*
+     * Generates a HTML representation of the current table.
+     */
+    MyTable.prototype.convertToHTML = function () {
+        var html = "<table>\n";
+        for (var i = 0; i < this.getRowCount(); i++) {
+            var row = this.getRow(i);
+            html += "<tr>\n";
+            row.forEach(function (x) {
+                html += "<td>" + escapeHTML(x.getData()) + "</td>\n";
+            }); /* TODO: Escape HTML */
+            html += "</tr>\n";
+        }
+        html += "</table>\n";
+        return (React.createElement("div", null,
+            React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "latex-box", id: "htmltextarea", value: html })));
+    };
+    /*
      * Functions used for clicking and dragging to select cells.
      */
     //Initialises the select box when the mouse is clicked down.
@@ -600,12 +621,15 @@ var MyTable = /** @class */ (function (_super) {
         var ctx = htmlcanvas.getContext('2d');
         var img = document.createElement("img");
         img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svgData));
+        var w = window.open("");
+        w.document.write(img.outerHTML);
+        //window.open(htmlcanvas.toDataURL("image/png"));
         //let a = document.getElementById("dlbutton")!;
         //a.setAttribute("href", "data:application/octet-stream;base64,");
-        img.onload = function () {
-            ctx.drawImage(img, 0, 0);
-            console.log(htmlcanvas.toDataURL("image/png"));
-        };
+        //img.onload = function () {
+        //    ctx.drawImage(img, 0, 0);
+        //    console.log(htmlcanvas.toDataURL("image/png"));
+        //};
     };
     /*
      * Draws the current representation of the table.
@@ -633,6 +657,7 @@ var MyTable = /** @class */ (function (_super) {
             React.createElement("h2", null, "LaTeX"),
             React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
             this.convertToLatex(),
+            this.convertToHTML(),
             React.createElement("canvas", { id: "mycanvas", className: "hide", width: tablewidth, height: tableheight })));
     };
     MyTable.prototype.componentDidMount = function () {
