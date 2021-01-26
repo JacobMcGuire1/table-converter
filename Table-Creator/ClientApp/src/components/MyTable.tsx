@@ -185,6 +185,9 @@ class CellDetails {
         }     
         return "";
     }
+    public getHexBackgroundColour() : string {
+        return this.backgroundcolour;
+    }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
         return lines.length * 20;
@@ -592,7 +595,12 @@ class MyTable extends React.Component<Props, TableState> {
 
             row.forEach(
                 (x) => {
-                    html += "<td>" + escapeHTML(x.getData()) + "</td>\n";
+                    let colour = x.getHexBackgroundColour();
+                    html += "<td";
+                    if (colour !== "") {
+                        html += " style='background-color:" + colour + ";'";
+                    }
+                    html += ">" + escapeHTML(x.getData()) + "</td >\n";
                 }); /* TODO: Escape HTML */
 
             html += "</tr>\n";
@@ -600,9 +608,11 @@ class MyTable extends React.Component<Props, TableState> {
 
         html += "</table>\n";
 
+        //dangerous TODO: remove live html
         return (
             <div>
                 <textarea readOnly={true} rows={15} cols={15} className="latex-box" id="htmltextarea" value={html} />
+                <div dangerouslySetInnerHTML={{ __html: html }} />
             </div>
         );
     }

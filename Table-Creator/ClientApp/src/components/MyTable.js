@@ -177,6 +177,9 @@ var CellDetails = /** @class */ (function () {
         }
         return "";
     };
+    CellDetails.prototype.getHexBackgroundColour = function () {
+        return this.backgroundcolour;
+    };
     CellDetails.prototype.getTextHeight = function () {
         var lines = this.data.split("\n");
         return lines.length * 20;
@@ -543,13 +546,20 @@ var MyTable = /** @class */ (function (_super) {
             var row = this.getRow(i);
             html += "<tr>\n";
             row.forEach(function (x) {
-                html += "<td>" + escapeHTML(x.getData()) + "</td>\n";
+                var colour = x.getHexBackgroundColour();
+                html += "<td";
+                if (colour !== "") {
+                    html += " style='background-color:" + colour + ";'";
+                }
+                html += ">" + escapeHTML(x.getData()) + "</td >\n";
             }); /* TODO: Escape HTML */
             html += "</tr>\n";
         }
         html += "</table>\n";
+        //dangerous TODO: remove live html
         return (React.createElement("div", null,
-            React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "latex-box", id: "htmltextarea", value: html })));
+            React.createElement("textarea", { readOnly: true, rows: 15, cols: 15, className: "latex-box", id: "htmltextarea", value: html }),
+            React.createElement("div", { dangerouslySetInnerHTML: { __html: html } })));
     };
     /*
      * Functions used for clicking and dragging to select cells.
