@@ -16,6 +16,7 @@ type TableState = {
     selecting: boolean;
     startselectpoint: [number, number];
     endselectpoint: [number, number];
+    bordermodify: [boolean, boolean, boolean, boolean];
 }
 
 function escapeLatex(str: string){
@@ -65,6 +66,8 @@ class CellDetails {
     private mergechildren: string[] = [];
     private data: string = "";
     private backgroundcolour: string = "";
+    private borderstyle: string = "solid";
+    private bordercolour: string = "#000000";
     public width: number = 0;
     public height: number = 0;
     
@@ -114,6 +117,12 @@ class CellDetails {
     }
     public setBackgroundColour(chosencolour: string) {
         this.backgroundcolour = chosencolour;
+    }
+    public setBorderColour(chosencolour: string) {
+        this.bordercolour = chosencolour;
+    }
+    public setBorderStyle(style: string) {
+        this.borderstyle = style;
     }
     private getTextWidth(): number {
         if (this.isVisible()) {
@@ -188,6 +197,19 @@ class CellDetails {
     public getHexBackgroundColour() : string {
         return this.backgroundcolour;
     }
+    public getHTML() : string {
+        let colour = this.getHexBackgroundColour();
+        let html = "<td style='";
+        if (colour !== "") {
+            html += "background-color:" + colour + ";";
+        }
+        html += "border: 1px solid " + this.bordercolour + ";";
+        html += "padding: 5px;";
+        html += "text-align: right;";
+        html += "border-style:" + this.borderstyle + ";";
+        html += "'>" + escapeHTML(this.getData()) + "</td >\n";
+        return html;
+    }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
         return lines.length * 20;
@@ -254,6 +276,8 @@ class CellDetails {
                     editing={this.editing}
                     hlines={hlines}
                     backgroundcolour={this.backgroundcolour}
+                    bordercolour={this.bordercolour}
+                    borderstyle={this.borderstyle}
                 />
             );
         }
@@ -267,7 +291,7 @@ class MyTable extends React.Component<Props, TableState> {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0,0] };
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true]};
         this.testPopulateTable();
     }
 
@@ -414,6 +438,32 @@ class MyTable extends React.Component<Props, TableState> {
             });
         let newtable = this.state.table.map((x) => x);
         this.setState({ table: newtable });
+    }
+
+    private setCellBorderColours() {
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.setBorderColour(this.chosencolour)
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
+    private selectBorderToModify(border: number) {
+        let bordermodify: [boolean, boolean, boolean, boolean];
+        bordermodify = [...this.state.bordermodify];
+        bordermodify[border] = !bordermodify[border];
+        this.setState({bordermodify: bordermodify})
+    }
+
+    private chooseBorderStyle(e: React.ChangeEvent<HTMLSelectElement>) {
+        console.log(this.state.bordermodify);
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.setBorderStyle(e.target.value);
+        })
     }
 
     private deselectAllCells() {
@@ -577,7 +627,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         return (
             <div>
-                <textarea readOnly={true} rows={15} cols={15} className="latex-box" id="latextextarea" value={latex}/>
+                <textarea readOnly={true} rows={10} cols={15} className="latex-box" id="latextextarea" value={latex}/>
             </div>
             
         );
@@ -587,7 +637,7 @@ class MyTable extends React.Component<Props, TableState> {
      * Generates a HTML representation of the current table.
      */
     private convertToHTML() {
-        let html = "<table>\n";
+        let html = "<table class='htmltable' >\n";
 
         for (let i = 0; i < this.getRowCount(); i++) {
             let row = this.getRow(i);
@@ -595,12 +645,8 @@ class MyTable extends React.Component<Props, TableState> {
 
             row.forEach(
                 (x) => {
-                    let colour = x.getHexBackgroundColour();
-                    html += "<td";
-                    if (colour !== "") {
-                        html += " style='background-color:" + colour + ";'";
-                    }
-                    html += ">" + escapeHTML(x.getData()) + "</td >\n";
+                    html += x.getHTML();
+                    
                 }); /* TODO: Escape HTML */
 
             html += "</tr>\n";
@@ -608,11 +654,11 @@ class MyTable extends React.Component<Props, TableState> {
 
         html += "</table>\n";
 
-        //dangerous TODO: remove live html
+        //dangerous TODO: maybe remove live html
         return (
             <div>
-                <textarea readOnly={true} rows={15} cols={15} className="latex-box" id="htmltextarea" value={html} />
-                <div dangerouslySetInnerHTML={{ __html: html }} />
+                <div dangerouslySetInnerHTML={{ __html: html }} className="html-table-displaybox" />
+                <textarea readOnly={true} rows={10} cols={15} className="latex-box" id="htmltextarea" value={html} />
             </div>
         );
     }
@@ -632,7 +678,14 @@ class MyTable extends React.Component<Props, TableState> {
     //Destroys the box after performing one last update of the box's position.
     //This triggers when click is released or the mouse moves outside of the table.
     private svgDestroyRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) {
-        this.svgDragRect(ev);
+        
+        //Uses string conversions to compare the arrays.
+        if ((this.state.startselectpoint.toString() === this.state.endselectpoint.toString()) && (this.state.startselectpoint.toString() !== "0,0")) {
+            console.log("Click select" + this.state.startselectpoint);
+            this.selectWithClick(this.state.startselectpoint);
+        } else {
+            this.svgDragRect(ev);
+        }
         this.setState({ selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0]});
     }
     //Updates the coordinates of the box as the mouse moves (while click is held).
@@ -661,6 +714,34 @@ class MyTable extends React.Component<Props, TableState> {
                     height={Math.abs(start[1] - end[1])}
                 />
             );
+        }
+    }
+    private selectWithClick(coords: [number, number]) {
+        let svg = document.getElementById("svg")!;
+        let rect = svg.getBoundingClientRect();
+        coords = [coords[0] + rect.left, coords[1] + rect.top];
+        for (let row = 0; row < this.getRowCount(); row++) {
+            for (let col = 0; col < this.getColCount(); col++) {
+                let cell = this.state.table[row][col];
+                if (cell.isVisible()) {
+                    let svggroup = document.getElementById(cell.p.toString()) as HTMLElement;
+                    let rect = svggroup!.getBoundingClientRect();
+
+                    if (coords[0] < rect.left + rect.width &&
+                        coords[0] > rect.left &&
+                        coords[1] < rect.top + rect.height &&
+                        coords[1] > rect.top) {
+                        if (cell.isSelected()) {
+                            cell.deselect();
+                        } else{
+                            cell.select();
+                        }
+                    }
+                    else {
+                        //cell.deselect();
+                    }
+                }
+            }
         }
     }
     //Selects the cells highlighted by the box by checking for collision with each cell.
@@ -757,13 +838,9 @@ class MyTable extends React.Component<Props, TableState> {
                     ))}
                     {this.drawSelectRect()}
                 </svg>
-
-                <br />
-                <h2>LaTeX</h2>
-                <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
-                {this.convertToLatex()}
-                {this.convertToHTML()}
                 <canvas id="mycanvas" className="hide" width={tablewidth} height={tableheight} />
+                <br />
+                
             </div>
         );
     }
@@ -780,28 +857,57 @@ class MyTable extends React.Component<Props, TableState> {
 
     public render() {
         return (
-            <div className="table-div" onClick={(e) => this.bigClick(e)}>
-                <h2>Table</h2>
+            <div className="root-div" onClick={(e) => this.bigClick(e)}>
+
+                <div>
+                    <h2>Table</h2>
+
+                    <div className="table-buttons-div">
+                        <h3>Global Controls</h3>
+                        <button type="button" onClick={() => this.addRow()}>Add Row</button>
+                        <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
+                        <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
+                        <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
+                        <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
+                        <button className="table-buttons" type="button" onClick={() => this.deselectAllCells()}>Deselect All Cells</button>
+                        <button className="table-buttons" type="button" onClick={() => this.selectAllCells()}>Select All Cells</button>
+                        <button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Convert to image</button>
+                    </div>
+                    <div className="table-buttons-div">
+                        <h3>Selected Cell Controls</h3>
+                        <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} />
+                        <button className="table-buttons" type="button" onClick={() => this.setCellBackgroundColours()}>Set Selected Cells to this colour</button>
+                        <button className="table-buttons" type="button" onClick={() => this.setCellBorderColours()}>Set Selected Cell borders to this colour</button>
+                    </div>
+                    <div className="table-buttons-div">
+                        <h3>Border Styling</h3>
+                        <select name="chooseborderstyle" onChange={(e) => this.chooseBorderStyle(e)}>
+                            <option value="solid">Solid</option>
+                            <option value="dotted">Dotted</option>
+                            <option value="dashed">Dashed</option>
+                        </select>
+                        Top
+                        <input type="checkbox" value="top" checked={this.state.bordermodify[0]} onClick={() => this.selectBorderToModify(0)}/>
+                        Right
+                        <input type="checkbox" value="right" checked={this.state.bordermodify[1]} onClick={() => this.selectBorderToModify(1)}/>
+                        Bottom
+                        <input type="checkbox" value="bottom" checked={this.state.bordermodify[2]} onClick={() => this.selectBorderToModify(2)}/>
+                        Left
+                        <input type="checkbox" value="left" checked={this.state.bordermodify[3]} onClick={() => this.selectBorderToModify(3)}/>
+                        
+                    </div>
+
+
+                    {this.drawTable()}
+                </div>
                 
-                <div className="table-buttons-div">
-                    <h3>Global Controls</h3>
-                    <button type="button" onClick={() => this.addRow()}>Add Row</button>
-                    <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
-                    <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
-                    <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
-                    <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
-                    <button className="table-buttons" type="button" onClick={() => this.deselectAllCells()}>Deselect All Cells</button>
-                    <button className="table-buttons" type="button" onClick={() => this.selectAllCells()}>Select All Cells</button>
-                    <button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Convert to image</button>
+                <div>
+                    <h2>LaTeX</h2>
+                    <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
+                    {this.convertToLatex()}
+                    <h2>HTML</h2>
+                    {this.convertToHTML()}
                 </div>
-                <div className="table-buttons-div">
-                    <h3>Selected Cell Controls</h3>
-                    <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} />
-                    <button className="table-buttons" type="button" onClick={() => this.setCellBackgroundColours()}>Set Selected Cells to this colour</button>
-                </div>
-
-
-                {this.drawTable()}
             </div>
         );
     }
@@ -827,6 +933,8 @@ interface SVGCellProps {
     editing: boolean
     hlines: boolean
     backgroundcolour: string
+    bordercolour: string
+    borderstyle: string
 }
 
 class SVGCell extends React.Component<SVGCellProps, {}> {
@@ -879,11 +987,11 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         }
     }
     private clickCell(e: React.MouseEvent<SVGGElement, MouseEvent>) {
-        if (this.props.selected) {
+        /*if (this.props.selected) {
             this.props.deselectcell(this.props.cell);
         } else {
             this.props.selectcell(this.props.cell);
-        }
+        }*/
     }
     private getRectColour() {
         /*if (this.props.selected) {
@@ -898,7 +1006,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         //if (this.props.selected) {
         //    return "yellow";
         //}
-        return "black";
+        return this.props.bordercolour;
     }
     private getSelectedStyling() {
         if (this.props.selected) {
@@ -907,12 +1015,22 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
             )
         }
     }
+    private getBorderStyle() {
+        switch (this.props.borderstyle) {
+            case "solid":
+                return "";
+            case "dotted":
+                return "2,2";
+            case "dashed":
+                return "5,5";
+        }
+    }
     componentDidUpdate() {
     }
     public render() {
         return (
             <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={this.props.cell.p.toString()} className="ACell">
-                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 2 : 0} />
+                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 1 : 0} stroke-dasharray={this.getBorderStyle()}/>
                 {this.getSelectedStyling()}
                 {this.getText()}
             </g>
