@@ -192,6 +192,22 @@ var CellDetails = /** @class */ (function () {
         }
         return "";
     };
+    CellDetails.prototype.getBottomLines = function () {
+        if (this.mergeroot === this.p.toString()) {
+            var bottom_1 = this.p.row;
+            var cells_1 = [this.p];
+            this.mergechildren.forEach(function (item) {
+                var p = new TablePoint(undefined, undefined, item);
+                cells_1.push(p);
+                if (p.row > bottom_1)
+                    bottom_1 = p.row;
+            });
+            return cells_1.filter(function (cell) { return cell.row === bottom_1; }); //Returns the cells at the bottom of the merge.
+        }
+        if (this.mergeroot === "")
+            return [this.p];
+        return []; //If it's child in a merge, return nothing.
+    };
     CellDetails.prototype.getHexBackgroundColour = function () {
         return this.backgroundcolour;
     };
@@ -566,9 +582,20 @@ var MyTable = /** @class */ (function (_super) {
      * Generates a latex representation of the current table.
      */
     MyTable.prototype.convertToLatex = function () {
+        var _this = this;
         var collatex = "|";
         for (var col = 0; col < this.getColCount(); col++) {
             collatex = collatex + "c|";
+        }
+        //Preprocess for horizontal lines.
+        var horlines = Array(this.getRowCount()).fill(undefined).map(function () { return Array(_this.getColCount()).fill(false); });
+        for (var row = 0; row < this.getRowCount(); row++) {
+            this.state.table[row].forEach(function (x) {
+                var cells = x.getBottomLines();
+                cells.forEach(function (cell) {
+                    horlines[cell.row][cell.col] = true;
+                });
+            });
         }
         var latextable = [];
         var _loop_1 = function (row) {
@@ -580,8 +607,23 @@ var MyTable = /** @class */ (function (_super) {
             if (rowlatex.charAt(rowlatex.length - 1) === '&')
                 rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
+            //make fized length array of bools
+            var lines = horlines[row]; //[true, true, true, true, true];
+            var drawingline = false;
+            var l = " ";
+            for (var i = 0; i < lines.length; i++) {
+                var col = i + 1;
+                if (lines[i] && !drawingline) {
+                    drawingline = true;
+                    l = l + "\\cline{" + col;
+                }
+                if ((i === lines.length - 1 && drawingline) || (drawingline && i !== lines.length - 1 && !lines[i + 1])) {
+                    l = l + "-" + col + "}";
+                    drawingline = false;
+                }
+            }
             if (this_1.state.horizontallines)
-                rowlatex = rowlatex + " \\hline";
+                rowlatex = rowlatex + l;
             latextable.push(rowlatex);
         };
         var this_1 = this;

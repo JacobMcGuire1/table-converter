@@ -194,6 +194,21 @@ class CellDetails {
         }     
         return "";
     }
+    public getBottomLines(): TablePoint[] {
+        if (this.mergeroot === this.p.toString()) {
+            let bottom = this.p.row;
+            let cells: TablePoint[] = [this.p];
+            this.mergechildren.forEach(
+                (item) => {
+                    let p = new TablePoint(undefined, undefined, item);
+                    cells.push(p);
+                    if (p.row > bottom) bottom = p.row;
+                });
+            return cells.filter(cell => cell.row === bottom); //Returns the cells at the bottom of the merge.
+        }
+        if (this.mergeroot === "") return [this.p];
+        return []; //If it's child in a merge, return nothing.
+    }
     public getHexBackgroundColour() : string {
         return this.backgroundcolour;
     }
@@ -615,6 +630,19 @@ class MyTable extends React.Component<Props, TableState> {
             collatex = collatex + "c|";
         }
 
+        //Preprocess for horizontal lines.
+        let horlines = Array(this.getRowCount()).fill(undefined).map(() => Array(this.getColCount()).fill(false));
+        for (let row = 0; row < this.getRowCount(); row++) {
+            this.state.table[row].forEach(
+                (x) => {
+                    let cells = x.getBottomLines();
+                    cells.forEach(
+                        (cell) => {
+                            horlines[cell.row][cell.col] = true;
+                        });
+                });
+        }
+
         let latextable = [];
         for (let row = 0; row < this.getRowCount(); row++) {
             let rowarray = this.state.table[row];
@@ -625,7 +653,25 @@ class MyTable extends React.Component<Props, TableState> {
                 }); /* Escapes & characters and backslashes */
             if (rowlatex.charAt(rowlatex.length - 1) === '&') rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
-            if (this.state.horizontallines) rowlatex = rowlatex + " \\hline";
+
+            //make fized length array of bools
+            
+            let lines = horlines[row];//[true, true, true, true, true];
+            let drawingline = false;
+            let l = " ";
+            for (let i = 0; i < lines.length; i++) {
+                let col = i + 1;
+                if (lines[i] && !drawingline) {
+                    drawingline = true;
+                    l = l + "\\cline{" + col;
+                }
+                if ((i === lines.length - 1 && drawingline) || (drawingline && i !== lines.length - 1 && !lines[i + 1])) {
+                    l = l + "-" + col + "}";
+                    drawingline = false;
+                } 
+            }
+
+            if (this.state.horizontallines) rowlatex = rowlatex + l;
             latextable.push(rowlatex);
         }
         if (this.state.horizontallines && latextable.length > 0) latextable[0] = " \\hline" + "\n" + latextable[0];
