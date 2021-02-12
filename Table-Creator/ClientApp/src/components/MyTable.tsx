@@ -178,10 +178,10 @@ class CellDetails {
             let size = this.getMergeSize();
             let h = size[0];
             let w = size[1];
-            if (w == 0) {
+            if (w === 0) {
                 return "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "} &";
             }
-            if (h == 0) {
+            if (h === 0) {
                 return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
             }
             //return data + " &"; //Should return multi thing here.
@@ -197,17 +197,37 @@ class CellDetails {
     public getHexBackgroundColour() : string {
         return this.backgroundcolour;
     }
-    public getHTML() : string {
+    public getHTML(): string {
+        if (this.mergeroot !== "" && this.mergeroot !== this.p.toString()) return ""; //Return nothing if this cell is hidden by being a child of a merge.
+
+        let mergetext = "";
+        if (this.mergeroot === this.p.toString()) {
+            let size = this.getMergeSize();
+            let h = size[0];
+            let w = size[1];
+            if (h !== 0) {
+                mergetext += " rowspan='" + (h + 1).toString() + "'";
+            }
+            if (w !== 0) {
+                mergetext += " colspan='" + (w + 1).toString() + "'";
+            }
+        }
+        
+        let html = "<td ";
+        html += mergetext;
+
+        //CSS styling
         let colour = this.getHexBackgroundColour();
-        let html = "<td style='";
+        html += " style = '";
         if (colour !== "") {
             html += "background-color:" + colour + ";";
         }
         html += "border: 1px solid " + this.bordercolour + ";";
         html += "padding: 5px;";
-        html += "text-align: right;";
+        html += "text-align: center;";
         html += "border-style:" + this.borderstyle + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
+
         return html;
     }
     private getTextHeight(): number {
@@ -1030,7 +1050,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     public render() {
         return (
             <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={this.props.cell.p.toString()} className="ACell">
-                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 1 : 0} stroke-dasharray={this.getBorderStyle()}/>
+                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 1 : 0} strokeDasharray={this.getBorderStyle()}/>
                 {this.getSelectedStyling()}
                 {this.getText()}
             </g>

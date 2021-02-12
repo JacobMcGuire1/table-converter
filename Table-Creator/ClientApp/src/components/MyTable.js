@@ -176,10 +176,10 @@ var CellDetails = /** @class */ (function () {
             var size = this.getMergeSize();
             var h = size[0];
             var w = size[1];
-            if (w == 0) {
+            if (w === 0) {
                 return "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "} &";
             }
-            if (h == 0) {
+            if (h === 0) {
                 return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
             }
             //return data + " &"; //Should return multi thing here.
@@ -196,14 +196,31 @@ var CellDetails = /** @class */ (function () {
         return this.backgroundcolour;
     };
     CellDetails.prototype.getHTML = function () {
+        if (this.mergeroot !== "" && this.mergeroot !== this.p.toString())
+            return ""; //Return nothing if this cell is hidden by being a child of a merge.
+        var mergetext = "";
+        if (this.mergeroot === this.p.toString()) {
+            var size = this.getMergeSize();
+            var h = size[0];
+            var w = size[1];
+            if (h !== 0) {
+                mergetext += " rowspan='" + (h + 1).toString() + "'";
+            }
+            if (w !== 0) {
+                mergetext += " colspan='" + (w + 1).toString() + "'";
+            }
+        }
+        var html = "<td ";
+        html += mergetext;
+        //CSS styling
         var colour = this.getHexBackgroundColour();
-        var html = "<td style='";
+        html += " style = '";
         if (colour !== "") {
             html += "background-color:" + colour + ";";
         }
         html += "border: 1px solid " + this.bordercolour + ";";
         html += "padding: 5px;";
-        html += "text-align: right;";
+        html += "text-align: center;";
         html += "border-style:" + this.borderstyle + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
         return html;
@@ -872,7 +889,7 @@ var SVGCell = /** @class */ (function (_super) {
     SVGCell.prototype.render = function () {
         var _this = this;
         return (React.createElement("g", { onDoubleClick: function () { return _this.props.enableedit(_this.props.cell); }, onClick: function (e) { return _this.clickCell(e); }, id: this.props.cell.p.toString(), className: "ACell" },
-            React.createElement("rect", { x: this.props.xpixel, y: this.props.ypixel, width: this.props.width, height: this.props.height, fill: this.getRectColour(), stroke: this.getBorderColour(), strokeWidth: this.props.hlines ? 1 : 0, "stroke-dasharray": this.getBorderStyle() }),
+            React.createElement("rect", { x: this.props.xpixel, y: this.props.ypixel, width: this.props.width, height: this.props.height, fill: this.getRectColour(), stroke: this.getBorderColour(), strokeWidth: this.props.hlines ? 1 : 0, strokeDasharray: this.getBorderStyle() }),
             this.getSelectedStyling(),
             this.getText()));
     };
