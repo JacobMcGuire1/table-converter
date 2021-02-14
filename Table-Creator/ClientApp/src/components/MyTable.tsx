@@ -1059,7 +1059,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     private getText() {
         let lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
-            
+            //test
             if (lines.length === 1) {
                 return (
                     <g>

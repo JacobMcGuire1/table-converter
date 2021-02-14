@@ -911,6 +911,7 @@ var SVGCell = /** @class */ (function (_super) {
         var _this = this;
         var lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
+            //test
             if (lines.length === 1) {
                 return (React.createElement("g", null,
                     React.createElement("text", { x: this.props.xpixel + this.props.width / 2, y: this.props.ypixel + 20, textAnchor: "middle", alignmentBaseline: "central", className: "celltext" }, lines[0])));
