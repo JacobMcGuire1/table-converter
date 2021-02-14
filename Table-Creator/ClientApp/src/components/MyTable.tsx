@@ -169,11 +169,18 @@ class CellDetails {
             });
         return [maxrow - minrow, maxcol - mincol];
     }
-    public getLatex(): string {
-        let data = escapeLatex(this.getData());
+    private getLatexBackgroundColour() {
+        if (this.backgroundcolour === "") return "";
+        return "\\cellcolor[HTML]{" + this.backgroundcolour.replace('#', '').toUpperCase() + "}";
+    }
+    public getLatex(leftmergecells: any): string {
+        let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+
+        //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
             return data + " &";
         }
+        //If it's the root cell of a group of merged cells.
         if (this.mergeroot === this.p.toString()) {
             let size = this.getMergeSize();
             let h = size[0];
@@ -184,13 +191,16 @@ class CellDetails {
             if (h === 0) {
                 return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
             }
-            //return data + " &"; //Should return multi thing here.
             return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
         }
         //return "THIS CELL SHOULD NOT BE DISPLAYED";
         let rootp = new TablePoint(undefined, undefined, this.mergeroot);
         if (this.p.row > rootp.row) {
-            return "&";
+            let leftmerge = leftmergecells[this.p.toString()];
+            if (leftmerge !== undefined) {
+                return "\\multicolumn{" + (leftmerge + 1).toString() + "}{|c|}{} &";
+            }
+            //return "&";
         }     
         return "";
     }
@@ -205,6 +215,20 @@ class CellDetails {
                     if (p.row > bottom) bottom = p.row;
                 });
             return cells.filter(cell => cell.row === bottom); //Returns the cells at the bottom of the merge.
+        }
+        if (this.mergeroot === "") return [this.p];
+        return []; //If it's child in a merge, return nothing.
+    }
+    public getLeftLines(): TablePoint[] {
+        if (this.mergeroot === this.p.toString()) {
+            let left = this.p.col;
+            let cells: TablePoint[] = [this.p];
+            this.mergechildren.forEach(
+                (item) => {
+                    let p = new TablePoint(undefined, undefined, item);
+                    if (p.col === left) cells.push(p);
+                });
+            return cells; //Returns the cells at the bottom of the merge.
         }
         if (this.mergeroot === "") return [this.p];
         return []; //If it's child in a merge, return nothing.
@@ -415,6 +439,10 @@ class MyTable extends React.Component<Props, TableState> {
             newtable[row].push(cell);
         }
         this.setState({ table: newtable });
+    }
+
+    private moveCell() {
+
     }
 
     /*
@@ -632,6 +660,8 @@ class MyTable extends React.Component<Props, TableState> {
 
         //Preprocess for horizontal lines.
         let horlines = Array(this.getRowCount()).fill(undefined).map(() => Array(this.getColCount()).fill(false));
+        //let leftmergecells = {};
+        let leftmergecells: { [key: string]: number; } = {};
         for (let row = 0; row < this.getRowCount(); row++) {
             this.state.table[row].forEach(
                 (x) => {
@@ -640,6 +670,14 @@ class MyTable extends React.Component<Props, TableState> {
                         (cell) => {
                             horlines[cell.row][cell.col] = true;
                         });
+                    if (x.getMergeChildren().length !== 0) {
+                        let leftcells = x.getLeftLines();
+                        let width = x.getMergeSize()[1];
+                        leftcells.forEach(
+                            (item) => {
+                                leftmergecells[item.toString()] = width;
+                            });
+                    }
                 });
         }
 
@@ -649,7 +687,7 @@ class MyTable extends React.Component<Props, TableState> {
             let rowlatex = "";
             rowarray.forEach(
                 (x) => {
-                    rowlatex = rowlatex + x.getLatex();
+                    rowlatex = rowlatex + x.getLatex(leftmergecells);
                 }); /* Escapes & characters and backslashes */
             if (rowlatex.charAt(rowlatex.length - 1) === '&') rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
@@ -693,7 +731,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         return (
             <div>
-                <textarea readOnly={true} rows={10} cols={15} className="latex-box" id="latextextarea" value={latex}/>
+                <textarea readOnly={true} rows={10} cols={25} className="latex-box" id="latextextarea" value={latex}/>
             </div>
             
         );

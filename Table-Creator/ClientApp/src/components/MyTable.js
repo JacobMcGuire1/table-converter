@@ -167,11 +167,18 @@ var CellDetails = /** @class */ (function () {
         });
         return [maxrow - minrow, maxcol - mincol];
     };
-    CellDetails.prototype.getLatex = function () {
-        var data = escapeLatex(this.getData());
+    CellDetails.prototype.getLatexBackgroundColour = function () {
+        if (this.backgroundcolour === "")
+            return "";
+        return "\\cellcolor[HTML]{" + this.backgroundcolour.replace('#', '').toUpperCase() + "}";
+    };
+    CellDetails.prototype.getLatex = function (leftmergecells) {
+        var data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+        //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
             return data + " &";
         }
+        //If it's the root cell of a group of merged cells.
         if (this.mergeroot === this.p.toString()) {
             var size = this.getMergeSize();
             var h = size[0];
@@ -182,13 +189,16 @@ var CellDetails = /** @class */ (function () {
             if (h === 0) {
                 return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
             }
-            //return data + " &"; //Should return multi thing here.
             return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
         }
         //return "THIS CELL SHOULD NOT BE DISPLAYED";
         var rootp = new TablePoint(undefined, undefined, this.mergeroot);
         if (this.p.row > rootp.row) {
-            return "&";
+            var leftmerge = leftmergecells[this.p.toString()];
+            if (leftmerge !== undefined) {
+                return "\\multicolumn{" + (leftmerge + 1).toString() + "}{|c|}{} &";
+            }
+            //return "&";
         }
         return "";
     };
@@ -203,6 +213,21 @@ var CellDetails = /** @class */ (function () {
                     bottom_1 = p.row;
             });
             return cells_1.filter(function (cell) { return cell.row === bottom_1; }); //Returns the cells at the bottom of the merge.
+        }
+        if (this.mergeroot === "")
+            return [this.p];
+        return []; //If it's child in a merge, return nothing.
+    };
+    CellDetails.prototype.getLeftLines = function () {
+        if (this.mergeroot === this.p.toString()) {
+            var left_1 = this.p.col;
+            var cells_2 = [this.p];
+            this.mergechildren.forEach(function (item) {
+                var p = new TablePoint(undefined, undefined, item);
+                if (p.col === left_1)
+                    cells_2.push(p);
+            });
+            return cells_2; //Returns the cells at the bottom of the merge.
         }
         if (this.mergeroot === "")
             return [this.p];
@@ -390,6 +415,8 @@ var MyTable = /** @class */ (function (_super) {
             newtable[row].push(cell);
         }
         this.setState({ table: newtable });
+    };
+    MyTable.prototype.moveCell = function () {
     };
     /*
      * Callback functions for interaction with individual cells
@@ -589,12 +616,21 @@ var MyTable = /** @class */ (function (_super) {
         }
         //Preprocess for horizontal lines.
         var horlines = Array(this.getRowCount()).fill(undefined).map(function () { return Array(_this.getColCount()).fill(false); });
+        //let leftmergecells = {};
+        var leftmergecells = {};
         for (var row = 0; row < this.getRowCount(); row++) {
             this.state.table[row].forEach(function (x) {
                 var cells = x.getBottomLines();
                 cells.forEach(function (cell) {
                     horlines[cell.row][cell.col] = true;
                 });
+                if (x.getMergeChildren().length !== 0) {
+                    var leftcells = x.getLeftLines();
+                    var width_2 = x.getMergeSize()[1];
+                    leftcells.forEach(function (item) {
+                        leftmergecells[item.toString()] = width_2;
+                    });
+                }
             });
         }
         var latextable = [];
@@ -602,7 +638,7 @@ var MyTable = /** @class */ (function (_super) {
             var rowarray = this_1.state.table[row];
             var rowlatex = "";
             rowarray.forEach(function (x) {
-                rowlatex = rowlatex + x.getLatex();
+                rowlatex = rowlatex + x.getLatex(leftmergecells);
             }); /* Escapes & characters and backslashes */
             if (rowlatex.charAt(rowlatex.length - 1) === '&')
                 rowlatex = rowlatex.slice(0, -1);
@@ -644,7 +680,7 @@ var MyTable = /** @class */ (function (_super) {
         latex += "\n\\end{tabular}";
         latex += "\n\\end{center}";
         return (React.createElement("div", null,
-            React.createElement("textarea", { readOnly: true, rows: 10, cols: 15, className: "latex-box", id: "latextextarea", value: latex })));
+            React.createElement("textarea", { readOnly: true, rows: 10, cols: 25, className: "latex-box", id: "latextextarea", value: latex })));
     };
     /*
      * Generates a HTML representation of the current table.
