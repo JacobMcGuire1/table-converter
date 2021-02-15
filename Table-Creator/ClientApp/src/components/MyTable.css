@@ -38,6 +38,17 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    margin: 0px 4px 0px;
+    white-space: pre-wrap;
+    /*vertical-align: bottom;
+    display: table-cell;*/
+}
+
+.celldiv {
+
+    vertical-align: middle;
+    height: 100%;
+    width: 100%;
 }
 
 .hide {

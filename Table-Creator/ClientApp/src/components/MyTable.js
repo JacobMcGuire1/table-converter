@@ -71,6 +71,8 @@ var CellDetails = /** @class */ (function () {
         this.bordercolour = "#000000";
         this.width = 0;
         this.height = 0;
+        this.csstextalign = "center";
+        this.borders = [true, false, true, false];
         this.p = p;
         this.setData(p.toString());
     }
@@ -174,6 +176,8 @@ var CellDetails = /** @class */ (function () {
     };
     CellDetails.prototype.getLatex = function (leftmergecells) {
         var data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+        var LRborders = [this.borders[3] ? "|" : " ", this.borders[1] ? "|" : " "];
+        data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "}";
         //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
             return data + " &";
@@ -268,7 +272,7 @@ var CellDetails = /** @class */ (function () {
     };
     CellDetails.prototype.getTextHeight = function () {
         var lines = this.data.split("\n");
-        return lines.length * 20;
+        return lines.length * 25;
     };
     CellDetails.prototype.setData = function (data) {
         this.data = data;
@@ -311,9 +315,18 @@ var CellDetails = /** @class */ (function () {
         }
         return rowheights[this.p.row];
     };
+    CellDetails.prototype.getparagraphcss = function () {
+        //let styling: CSS.Properties = {
+        //    textAlign: this.csstextalign as any,
+        //}
+        return { textAlign: this.csstextalign };
+    };
+    CellDetails.prototype.setTextAlignment = function (alignment) {
+        this.csstextalign = alignment;
+    };
     CellDetails.prototype.draw = function (xpixel, ypixel, colwidths, rowheights, horizontaldividersize, verticaldividersize, changeData, selectCell, deSelectCell, enableEditMode, disableEditMode, hlines) {
         if (this.isVisible()) {
-            return (React.createElement(SVGCell, { key: this.p.toString(), cell: this, xpixel: xpixel, ypixel: ypixel, width: this.calculateWidth(colwidths, horizontaldividersize), height: this.calculateHeight(rowheights, verticaldividersize), changeData: changeData, selectcell: selectCell, deselectcell: deSelectCell, enableedit: enableEditMode, disableedit: disableEditMode, selected: this.selected, editing: this.editing, hlines: hlines, backgroundcolour: this.backgroundcolour, bordercolour: this.bordercolour, borderstyle: this.borderstyle }));
+            return (React.createElement(SVGCell, { key: this.p.toString(), cell: this, xpixel: xpixel, ypixel: ypixel, width: this.calculateWidth(colwidths, horizontaldividersize), height: this.calculateHeight(rowheights, verticaldividersize), changeData: changeData, selectcell: selectCell, deselectcell: deSelectCell, enableedit: enableEditMode, disableedit: disableEditMode, selected: this.selected, editing: this.editing, hlines: hlines, backgroundcolour: this.backgroundcolour, bordercolour: this.bordercolour, borderstyle: this.borderstyle, paragraphcss: this.getparagraphcss() }));
         }
     };
     return CellDetails;
@@ -605,14 +618,23 @@ var MyTable = /** @class */ (function (_super) {
         var newtable = this.state.table.map(function (x) { return x; });
         this.setState({ table: newtable });
     };
+    //Sets CSS horizontal text alignment for the selected cells.
+    MyTable.prototype.setHorizontalTextAlignment = function (alignment) {
+        var cells = this.getSelectedCells();
+        cells.forEach(function (cell) {
+            cell.setTextAlignment(alignment);
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable });
+    };
     /*
      * Generates a latex representation of the current table.
      */
     MyTable.prototype.convertToLatex = function () {
         var _this = this;
-        var collatex = "|";
+        var collatex = "";
         for (var col = 0; col < this.getColCount(); col++) {
-            collatex = collatex + "c|";
+            collatex = collatex + "c ";
         }
         //Preprocess for horizontal lines.
         var horlines = Array(this.getRowCount()).fill(undefined).map(function () { return Array(_this.getColCount()).fill(false); });
@@ -865,7 +887,10 @@ var MyTable = /** @class */ (function (_super) {
                     React.createElement("h3", null, "Selected Cell Controls"),
                     React.createElement("input", { type: "color", onChange: function (e) { return _this.chooseColour(e); }, ref: this.colourpickerref }),
                     React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBackgroundColours(); } }, "Set Selected Cells to this colour"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBorderColours(); } }, "Set Selected Cell borders to this colour")),
+                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBorderColours(); } }, "Set Selected Cell borders to this colour"),
+                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setHorizontalTextAlignment("left"); } }, "Left text alignment"),
+                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setHorizontalTextAlignment("center"); } }, "Centre text alignment"),
+                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setHorizontalTextAlignment("right"); } }, "Right text alignment")),
                 React.createElement("div", { className: "table-buttons-div" },
                     React.createElement("h3", null, "Border Styling"),
                     React.createElement("select", { name: "chooseborderstyle", onChange: function (e) { return _this.chooseBorderStyle(e); } },
@@ -911,14 +936,15 @@ var SVGCell = /** @class */ (function (_super) {
         var _this = this;
         var lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
-            //test
-            if (lines.length === 1) {
-                return (React.createElement("g", null,
-                    React.createElement("text", { x: this.props.xpixel + this.props.width / 2, y: this.props.ypixel + 20, textAnchor: "middle", alignmentBaseline: "central", className: "celltext" }, lines[0])));
-            }
-            return (React.createElement("g", null, lines.map(function (line, i) {
-                return React.createElement("text", { x: _this.props.xpixel + _this.props.width / 2, y: _this.props.ypixel + 9 + (i * 20), textAnchor: "middle", alignmentBaseline: "central", className: "celltext" }, line);
-            })));
+            //<text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{lines[0]}</text>
+            //if (lines.length === 1) {
+            //let styling: CSS.Properties = {
+            //     textAlign: "left",
+            //}
+            return (React.createElement("g", null,
+                React.createElement("foreignObject", { x: this.props.xpixel, y: this.props.ypixel, width: this.props.width, height: this.props.height },
+                    React.createElement("div", { className: "celldiv" },
+                        React.createElement("p", { className: "celltext", style: this.props.paragraphcss }, this.props.cell.getData())))));
         }
         else {
             var rows = lines.length;

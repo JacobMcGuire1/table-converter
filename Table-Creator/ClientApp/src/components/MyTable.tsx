@@ -70,6 +70,8 @@ class CellDetails {
     private bordercolour: string = "#000000";
     public width: number = 0;
     public height: number = 0;
+    public csstextalign: string = "center";
+    public borders: [boolean, boolean, boolean, boolean] = [true, false, true, false];
     
     constructor(p: TablePoint) {
         this.p = p;
@@ -175,6 +177,9 @@ class CellDetails {
     }
     public getLatex(leftmergecells: any): string {
         let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+        let LRborders = [this.borders[3] ? "|" : " ", this.borders[1] ? "|" : " "];
+
+        data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "}";
 
         //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
@@ -271,7 +276,7 @@ class CellDetails {
     }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
-        return lines.length * 20;
+        return lines.length * 25;
     }
     public setData(data: string) {
         this.data = data;
@@ -316,6 +321,15 @@ class CellDetails {
         }
         return rowheights[this.p.row];
     }
+    private getparagraphcss() {
+        //let styling: CSS.Properties = {
+        //    textAlign: this.csstextalign as any,
+        //}
+        return { textAlign: this.csstextalign};
+    }
+    public setTextAlignment(alignment : string) {
+        this.csstextalign = alignment;
+    }
     public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, hlines: boolean) {
         if (this.isVisible()) {
             return (
@@ -337,6 +351,7 @@ class CellDetails {
                     backgroundcolour={this.backgroundcolour}
                     bordercolour={this.bordercolour}
                     borderstyle={this.borderstyle}
+                    paragraphcss={this.getparagraphcss()}
                 />
             );
         }
@@ -649,13 +664,24 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: newtable });
     }
 
+    //Sets CSS horizontal text alignment for the selected cells.
+    private setHorizontalTextAlignment(alignment : string) {
+        let cells = this.getSelectedCells();
+        cells.forEach(
+            (cell) => {
+                cell.setTextAlignment(alignment);
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable });
+    }
+
     /*
      * Generates a latex representation of the current table.
      */
     private convertToLatex() {
-        let collatex = "|";
+        let collatex = "";
         for (let col = 0; col < this.getColCount(); col++) {
-            collatex = collatex + "c|";
+            collatex = collatex + "c ";
         }
 
         //Preprocess for horizontal lines.
@@ -982,6 +1008,9 @@ class MyTable extends React.Component<Props, TableState> {
                         <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} />
                         <button className="table-buttons" type="button" onClick={() => this.setCellBackgroundColours()}>Set Selected Cells to this colour</button>
                         <button className="table-buttons" type="button" onClick={() => this.setCellBorderColours()}>Set Selected Cell borders to this colour</button>
+                        <button className="table-buttons" type="button" onClick={() => this.setHorizontalTextAlignment("left")}>Left text alignment</button>
+                        <button className="table-buttons" type="button" onClick={() => this.setHorizontalTextAlignment("center")}>Centre text alignment</button>
+                        <button className="table-buttons" type="button" onClick={() => this.setHorizontalTextAlignment("right")}>Right text alignment</button>
                     </div>
                     <div className="table-buttons-div">
                         <h3>Border Styling</h3>
@@ -1039,6 +1068,7 @@ interface SVGCellProps {
     backgroundcolour: string
     bordercolour: string
     borderstyle: string
+    paragraphcss: any
 }
 
 class SVGCell extends React.Component<SVGCellProps, {}> {
@@ -1059,23 +1089,18 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     private getText() {
         let lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
-            //test
-            if (lines.length === 1) {
-                return (
-                    <g>
-                        <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{lines[0]}</text>
-                    </g>
-                );
-            }
+            //<text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{lines[0]}</text>
+            //if (lines.length === 1) {
+            //let styling: CSS.Properties = {
+           //     textAlign: "left",
+            //}
             return (
                 <g>
-                    {
-                        lines.map(
-                            (line, i) =>
-                                <text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 9 + (i * 20)} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{line}</text>
-                        )
-
-                    }
+                    <foreignObject x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height}>
+                        <div className="celldiv">
+                            <p className="celltext" style={this.props.paragraphcss}>{this.props.cell.getData()}</p>
+                        </div>
+                    </foreignObject>
                 </g>
             );
         } else {
