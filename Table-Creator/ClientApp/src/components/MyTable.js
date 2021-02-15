@@ -23,6 +23,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 //import React from 'react'; // we need this to make JSX compile
 var React = require("react");
 require("./MyTable.css");
+var table_1 = require("table");
 function escapeLatex(str) {
     str = str.split("\\").join("\\textbackslash");
     str = str.split("&").join("\\&");
@@ -472,6 +473,24 @@ var MyTable = /** @class */ (function (_super) {
         var sel = document.getSelection();
         sel.removeAllRanges();
     };
+    MyTable.prototype.copyHTML = function () {
+        var copyText = document.getElementById("htmltextarea");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        var sel = document.getSelection();
+        sel.removeAllRanges();
+    };
+    MyTable.prototype.copyText = function () {
+        var copyText = document.getElementById("texttextarea");
+        copyText.className = "show";
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        var sel = document.getSelection();
+        sel.removeAllRanges();
+        copyText.className = "hide";
+    };
     MyTable.prototype.chooseColour = function (e) {
         this.chosencolour = e.target.value;
     };
@@ -725,6 +744,21 @@ var MyTable = /** @class */ (function (_super) {
             React.createElement("textarea", { readOnly: true, rows: 10, cols: 15, className: "latex-box", id: "htmltextarea", value: html })));
     };
     /*
+     * Generates a text representation of the current table.
+     */
+    MyTable.prototype.convertToText = function () {
+        var textdata = this.state.table.map(function (row) {
+            return row.map(function (cell) {
+                return cell.getData();
+            });
+        });
+        var texttable = table_1.table(textdata);
+        //console.log(texttable);
+        return (React.createElement("div", null,
+            React.createElement("textarea", { readOnly: true, rows: 10, cols: 15, id: "texttextarea", className: "hide", value: texttable }),
+            React.createElement("code", { id: "textcodeblock" }, texttable)));
+    };
+    /*
      * Functions used for clicking and dragging to select cells.
      */
     //Initialises the select box when the mouse is clicked down.
@@ -912,7 +946,11 @@ var MyTable = /** @class */ (function (_super) {
                 React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
                 this.convertToLatex(),
                 React.createElement("h2", null, "HTML"),
-                this.convertToHTML())));
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyHTML(); } }, "Copy HTML to clipboard"),
+                this.convertToHTML(),
+                React.createElement("h2", null, "Text"),
+                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyText(); } }, "Copy Text to clipboard"),
+                this.convertToText())));
     };
     return MyTable;
 }(React.Component));

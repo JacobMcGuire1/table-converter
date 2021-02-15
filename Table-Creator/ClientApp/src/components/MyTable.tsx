@@ -2,6 +2,9 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import './MyTable.css';
+import {
+    table
+} from 'table';
 
 type Props = {
 }
@@ -506,6 +509,26 @@ class MyTable extends React.Component<Props, TableState> {
         sel!.removeAllRanges();
     }
 
+    private copyHTML(): void {
+        let copyText = document.getElementById("htmltextarea");
+        (copyText! as HTMLTextAreaElement).select();
+        (copyText! as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        let sel = document.getSelection();
+        sel!.removeAllRanges();
+    }
+
+    private copyText(): void {
+        let copyText = document.getElementById("texttextarea")!;
+        copyText.className = "show";
+        (copyText as HTMLTextAreaElement).select();
+        (copyText as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        let sel = document.getSelection();
+        sel!.removeAllRanges();
+        copyText.className = "hide";
+    }
+
     private chooseColour(e: React.ChangeEvent<HTMLInputElement>) {
         this.chosencolour = e.target.value;
     }
@@ -796,6 +819,33 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     /*
+     * Generates a text representation of the current table.
+     */
+    private convertToText() {
+        let textdata = this.state.table.map(
+            row =>
+                row.map(
+                    cell =>
+                        cell.getData()
+                )
+        );
+        let texttable = table(textdata);
+        //console.log(texttable);
+        return (
+            <div>
+                <textarea readOnly={true} rows={10} cols={15} id="texttextarea" className="hide" value={texttable}/>
+                <code id="textcodeblock">
+                    {texttable}
+                </code>
+                
+                {/*<textarea readOnly={true} rows={10} cols={25} className="text-table" id="" value={texttable} />*/}
+                
+            </div>
+
+        );
+    }
+
+    /*
      * Functions used for clicking and dragging to select cells.
      */
 
@@ -1041,7 +1091,11 @@ class MyTable extends React.Component<Props, TableState> {
                     <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
                     {this.convertToLatex()}
                     <h2>HTML</h2>
+                    <button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy HTML to clipboard</button>
                     {this.convertToHTML()}
+                    <h2>Text</h2>
+                    <button className="table-buttons" type="button" onClick={() => this.copyText()}>Copy Text to clipboard</button>
+                    {this.convertToText()}
                 </div>
             </div>
         );
