@@ -342,7 +342,7 @@ var MyTable = /** @class */ (function (_super) {
         _this.colourpickerref = React.createRef();
         _this.addRow = _this.addRow.bind(_this);
         _this.addCol = _this.addCol.bind(_this);
-        _this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true, true, true, true] };
+        _this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true, true, true, true], tab: 0 };
         _this.testPopulateTable();
         return _this;
     }
@@ -908,6 +908,32 @@ var MyTable = /** @class */ (function (_super) {
     };
     MyTable.prototype.bigClick = function (e) {
     };
+    MyTable.prototype.changeTab = function (e, v) {
+        //let tabbar = document.getElementById("tabbar")!;
+        //console.log(v);
+        this.setState({ tab: v });
+    };
+    MyTable.prototype.getTabContent = function () {
+        var _this = this;
+        switch (this.state.tab) {
+            case 1:
+                return (React.createElement("div", { id: "HTMLDiv" },
+                    this.convertToHTML(),
+                    React.createElement(core_1.Button, { className: "table-buttons", type: "button", onClick: function () { return _this.copyHTML(); } }, "Copy to clipboard")));
+            case 2:
+                return (React.createElement("div", { id: "TextDiv" },
+                    this.convertToText(),
+                    React.createElement(core_1.Button, { className: "table-buttons", type: "button", onClick: function () { return _this.copyText(); } }, "Copy to clipboard")));
+            case 3:
+                return (React.createElement("div", { id: "PNGDiv" },
+                    React.createElement(core_1.Button, { className: "table-buttons", type: "button", onClick: function () { return _this.convertToImage(); } }, "Generate PNG")));
+            case 0:
+            default:
+                return (React.createElement("div", { id: "LaTexDiv" },
+                    this.convertToLatex(),
+                    React.createElement(core_1.Button, { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy to clipboard")));
+        }
+    };
     MyTable.prototype.render = function () {
         var _this = this;
         return (React.createElement("div", null,
@@ -915,15 +941,14 @@ var MyTable = /** @class */ (function (_super) {
                 React.createElement(core_1.List, null,
                     React.createElement(core_1.ListItem, null,
                         React.createElement("b", null, "Global Controls")),
-                    React.createElement(core_1.ListItem, { divider: true }),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.addRow(); } }, "Add Row"),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.addCol(); } }, "Add Column"),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.selectAllCells(); } }, "Select All"),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.deselectAllCells(); } }, "Select None"),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines (Temp)"),
                     React.createElement(core_1.ListItem, { divider: true }),
                     React.createElement(core_1.ListItem, null,
                         React.createElement("b", null, "Selected Cell Controls")),
-                    React.createElement(core_1.ListItem, { divider: true }),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.mergeCells(); } },
                         React.createElement(core_1.ListItemText, { primary: "Merge", secondary: "Combine the selected cells into one" })),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.splitCells(); } },
@@ -948,13 +973,7 @@ var MyTable = /** @class */ (function (_super) {
                             React.createElement("option", { value: "dashed" }, "Dashed"))))),
             React.createElement("main", null,
                 React.createElement("div", { className: "root-div", onClick: function (e) { return _this.bigClick(e); } },
-                    React.createElement("div", null,
-                        React.createElement("h2", null, "Table"),
-                        React.createElement("div", { className: "table-buttons-div" },
-                            React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines"),
-                            React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.convertToImage(); } }, "Convert to image")),
-                        React.createElement("div", { className: "table-buttons-div" },
-                            React.createElement("h3", null, "Selected Cell Controls")),
+                    React.createElement("div", { className: "maintablediv" },
                         React.createElement("div", { className: "table-buttons-div" },
                             React.createElement("h3", null, "Border Styling"),
                             "Top",
@@ -967,16 +986,13 @@ var MyTable = /** @class */ (function (_super) {
                             React.createElement("input", { type: "checkbox", value: "left", checked: this.state.bordermodify[3], onClick: function () { return _this.selectBorderToModify(3); } })),
                         this.drawTable()),
                     React.createElement("div", null,
-                        React.createElement("h2", null, "LaTeX"),
-                        React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
-                        this.convertToLatex(),
-                        React.createElement("h2", null, "HTML"),
-                        React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyHTML(); } }, "Copy HTML to clipboard"),
-                        this.convertToHTML(),
-                        React.createElement("h2", null, "Text"),
-                        React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyText(); } }, "Copy Text to clipboard"),
-                        this.convertToText(),
-                        React.createElement(core_1.Button, null, "TEST"))))));
+                        React.createElement(core_1.AppBar, { position: "static" },
+                            React.createElement(core_1.Tabs, { id: "tabbar", value: this.state.tab, onChange: function (e, v) { return _this.changeTab(e, v); } },
+                                React.createElement(core_1.Tab, { label: "LaTeX", tabIndex: 0 }),
+                                React.createElement(core_1.Tab, { label: "HTML", tabIndex: 1 }),
+                                React.createElement(core_1.Tab, { label: "Text", tabIndex: 2 }),
+                                React.createElement(core_1.Tab, { label: "PNG", tabIndex: 3 }))),
+                        React.createElement("div", { id: "tabContentDiv" }, this.getTabContent()))))));
     };
     return MyTable;
 }(React.Component));

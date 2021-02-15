@@ -5,7 +5,8 @@
     text-align: center;
     /*word-break: break-all;*/
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    margin: 0px 0px 0px 350px;
 }
 .table-buttons-div {
     margin: 10px;
@@ -23,8 +24,13 @@
     text-align: center;
 }
 
+.html-table-displaybox {
+    margin: 20px 0px 0px 0px;
+}
+
 .latex-box {
     width: 75%;
+    height: 90%;
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box; /* Firefox, other Gecko */
     box-sizing: border-box; /* Opera/IE 8+ */
@@ -83,4 +89,7 @@
 .htmltable {
     margin-left: auto;
     margin-right: auto;
+}
+
+.maintablediv {
 }

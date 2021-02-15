@@ -3,7 +3,7 @@ import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import './MyTable.css';
 import { table } from 'table';
-import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, PopoverProps} from '@material-ui/core';
+import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar} from '@material-ui/core';
 
 
 type Props = {
@@ -20,6 +20,7 @@ type TableState = {
     startselectpoint: [number, number];
     endselectpoint: [number, number];
     bordermodify: [boolean, boolean, boolean, boolean];
+    tab: number;
 }
 
 function escapeLatex(str: string){
@@ -370,7 +371,7 @@ class MyTable extends React.Component<Props, TableState> {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true]};
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true], tab: 0};
         this.testPopulateTable();
     }
 
@@ -1042,6 +1043,45 @@ class MyTable extends React.Component<Props, TableState> {
 
     }
 
+    private changeTab(e: React.ChangeEvent<{}>, v) {
+        //let tabbar = document.getElementById("tabbar")!;
+        //console.log(v);
+        this.setState({ tab: (v as number) });
+    }
+
+    private getTabContent() {
+        switch (this.state.tab) {
+            case 1:
+                return (
+                    <div id="HTMLDiv">
+                        {this.convertToHTML()}
+                        <Button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy to clipboard</Button>
+                    </div>
+                );
+            case 2:
+                return (
+                    <div id="TextDiv">
+                        {this.convertToText()}
+                        <Button className="table-buttons" type="button" onClick={() => this.copyText()}>Copy to clipboard</Button>
+                    </div>
+                );
+            case 3:
+                return (
+                    <div id="PNGDiv">
+                        <Button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Generate PNG</Button>
+                    </div>
+                );
+            case 0:
+            default:
+                return (
+                    <div id="LaTexDiv">
+                        {this.convertToLatex()}
+                        <Button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy to clipboard</Button>
+                    </div>
+                );
+        }             
+    }
+
     public render() {
         return (
             <div>
@@ -1050,17 +1090,18 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem>
                             <b>Global Controls</b>
                         </ListItem>
-                        <ListItem divider/>
                         <ListItem button onClick={() => this.addRow()}>Add Row</ListItem>
                         <ListItem button onClick={() => this.addCol()}>Add Column</ListItem>
                         <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
                         <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
+                        <ListItem button onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines (Temp)</ListItem>
 
                         <ListItem divider />
+
                         <ListItem>
                             <b>Selected Cell Controls</b>
                         </ListItem>
-                        <ListItem divider />
+                        
                         <ListItem button onClick={() => this.mergeCells()}>
                             <ListItemText primary="Merge" secondary="Combine the selected cells into one"/>
                         </ListItem>
@@ -1082,19 +1123,6 @@ class MyTable extends React.Component<Props, TableState> {
                             <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
-                            {/*<Popover id="alignmentpopover"
-                                anchorOrigin={{
-                                    vertical: 'top',
-                                    horizontal: 'right',
-                                }}
-                                transformOrigin={{
-                                    vertical: 'top',
-                                    horizontal: 'right',
-                                }}
-                                open={true}
-                            >
-                                test
-                            </Popover>*/}
                         </ListItem>
                         <ListItem>
                             <ListItemText primary="Border Style:" />
@@ -1110,18 +1138,7 @@ class MyTable extends React.Component<Props, TableState> {
 
                 <main>
                     <div className="root-div" onClick={(e) => this.bigClick(e)}>
-                        <div>
-                            <h2>Table</h2>
-
-                            <div className="table-buttons-div">
-                                <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
-                                <button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Convert to image</button>
-                            </div>
-                            <div className="table-buttons-div">
-                                <h3>Selected Cell Controls</h3>
-                                
-                                
-                            </div>
+                        <div className="maintablediv">
                             <div className="table-buttons-div">
                                 <h3>Border Styling</h3>
                                 
@@ -1141,16 +1158,18 @@ class MyTable extends React.Component<Props, TableState> {
                         </div>
 
                         <div>
-                            <h2>LaTeX</h2>
-                            <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
-                            {this.convertToLatex()}
-                            <h2>HTML</h2>
-                            <button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy HTML to clipboard</button>
-                            {this.convertToHTML()}
-                            <h2>Text</h2>
-                            <button className="table-buttons" type="button" onClick={() => this.copyText()}>Copy Text to clipboard</button>
-                            {this.convertToText()}
-                            <Button>TEST</Button>
+                            <AppBar position="static">
+                                <Tabs id="tabbar" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
+                                    <Tab label="LaTeX" tabIndex={0}/>
+                                    <Tab label="HTML" tabIndex={1}/>
+                                    <Tab label="Text" tabIndex={2}/>
+                                    <Tab label="PNG" tabIndex={3}/>
+                                </Tabs>
+                            </AppBar>
+                            <div id="tabContentDiv">
+                                {this.getTabContent()}
+                            </div>
+                            
                         </div>
                     </div>
                 </main>
