@@ -72,7 +72,7 @@ var CellDetails = /** @class */ (function () {
         this.width = 0;
         this.height = 0;
         this.csstextalign = "center";
-        this.borders = [true, false, true, false];
+        this.borders = [true, true, true, true]; //T R B L
         this.p = p;
         this.setData(p.toString());
     }
@@ -177,9 +177,9 @@ var CellDetails = /** @class */ (function () {
     CellDetails.prototype.getLatex = function (leftmergecells) {
         var data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
         var LRborders = [this.borders[3] ? "|" : " ", this.borders[1] ? "|" : " "];
-        data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "}";
         //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
+            data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "}";
             return data + " &";
         }
         //If it's the root cell of a group of merged cells.
@@ -188,12 +188,13 @@ var CellDetails = /** @class */ (function () {
             var h = size[0];
             var w = size[1];
             if (w === 0) {
-                return "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "} &";
+                var result = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}}  &";
+                return result;
             }
             if (h === 0) {
-                return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + data + "} &";
+                return "\\multicolumn{" + (w + 1).toString() + "}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "} &";
             }
-            return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
+            return "\\multicolumn{" + (w + 1).toString() + "}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
         }
         //return "THIS CELL SHOULD NOT BE DISPLAYED";
         var rootp = new TablePoint(undefined, undefined, this.mergeroot);
