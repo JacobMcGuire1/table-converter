@@ -2,9 +2,9 @@
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import './MyTable.css';
-import {
-    table
-} from 'table';
+import { table } from 'table';
+import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, PopoverProps} from '@material-ui/core';
+
 
 type Props = {
 }
@@ -590,6 +590,11 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: newtable });
     }
 
+    private openTextAlignment(e : any) {
+        let popover = document.getElementById("alignmentpopover")!;
+        (popover as any).anchorEl = e.currentTarget;
+    }
+
     //Merges the currently selected cells.
     //Uses the outer cells to create a rectangle of cells to merge if the selection is not a rectangle already.
     //Also includes the borders of other merged cells in this calculation.
@@ -1039,64 +1044,116 @@ class MyTable extends React.Component<Props, TableState> {
 
     public render() {
         return (
-            <div className="root-div" onClick={(e) => this.bigClick(e)}>
+            <div>
+                <Drawer anchor="left" variant="permanent" open={true}>
+                    <List>
+                        <ListItem>
+                            <b>Global Controls</b>
+                        </ListItem>
+                        <ListItem divider/>
+                        <ListItem button onClick={() => this.addRow()}>Add Row</ListItem>
+                        <ListItem button onClick={() => this.addCol()}>Add Column</ListItem>
+                        <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
+                        <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
 
-                <div>
-                    <h2>Table</h2>
+                        <ListItem divider />
+                        <ListItem>
+                            <b>Selected Cell Controls</b>
+                        </ListItem>
+                        <ListItem divider />
+                        <ListItem button onClick={() => this.mergeCells()}>
+                            <ListItemText primary="Merge" secondary="Combine the selected cells into one"/>
+                        </ListItem>
+                        <ListItem button onClick={() => this.splitCells()}>
+                            <ListItemText primary="Split" secondary="Undo a merge"/>
+                        </ListItem>
+                        <ListItem>
+                            Colour
+                            <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} className="colour-picker"/>
+                        </ListItem>
+                        <ListItem button onClick={() => this.setCellBackgroundColours()}>
+                            <ListItemText primary="Set cell backgrounds to this colour" />
+                        </ListItem>
+                        <ListItem button onClick={() => this.setCellBorderColours()}>
+                            <ListItemText primary="Set cell borders to this colour" />
+                        </ListItem>
+                        <ListItem>
+                            <ListItemText primary="Text Alignment:"/>
+                            <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
+                            <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
+                            <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
+                            {/*<Popover id="alignmentpopover"
+                                anchorOrigin={{
+                                    vertical: 'top',
+                                    horizontal: 'right',
+                                }}
+                                transformOrigin={{
+                                    vertical: 'top',
+                                    horizontal: 'right',
+                                }}
+                                open={true}
+                            >
+                                test
+                            </Popover>*/}
+                        </ListItem>
+                        <ListItem>
+                            <ListItemText primary="Border Style:" />
+                            <select name="chooseborderstyle" onChange={(e) => this.chooseBorderStyle(e)}>
+                                <option value="solid">Solid</option>
+                                <option value="dotted">Dotted</option>
+                                <option value="dashed">Dashed</option>
+                            </select>
+                        </ListItem>
 
-                    <div className="table-buttons-div">
-                        <h3>Global Controls</h3>
-                        <button type="button" onClick={() => this.addRow()}>Add Row</button>
-                        <button className="table-buttons" type="button" onClick={() => this.addCol()}>Add Column</button>
-                        <button className="table-buttons" type="button" onClick={() => this.mergeCells()}>Merge Selected Cells</button>
-                        <button className="table-buttons" type="button" onClick={() => this.splitCells()}>Split Selected Cells</button>
-                        <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
-                        <button className="table-buttons" type="button" onClick={() => this.deselectAllCells()}>Deselect All Cells</button>
-                        <button className="table-buttons" type="button" onClick={() => this.selectAllCells()}>Select All Cells</button>
-                        <button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Convert to image</button>
+                    </List>
+                </Drawer>
+
+                <main>
+                    <div className="root-div" onClick={(e) => this.bigClick(e)}>
+                        <div>
+                            <h2>Table</h2>
+
+                            <div className="table-buttons-div">
+                                <button className="table-buttons" type="button" onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines</button>
+                                <button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Convert to image</button>
+                            </div>
+                            <div className="table-buttons-div">
+                                <h3>Selected Cell Controls</h3>
+                                
+                                
+                            </div>
+                            <div className="table-buttons-div">
+                                <h3>Border Styling</h3>
+                                
+                            Top
+                            <input type="checkbox" value="top" checked={this.state.bordermodify[0]} onClick={() => this.selectBorderToModify(0)} />
+                            Right
+                            <input type="checkbox" value="right" checked={this.state.bordermodify[1]} onClick={() => this.selectBorderToModify(1)} />
+                            Bottom
+                            <input type="checkbox" value="bottom" checked={this.state.bordermodify[2]} onClick={() => this.selectBorderToModify(2)} />
+                            Left
+                            <input type="checkbox" value="left" checked={this.state.bordermodify[3]} onClick={() => this.selectBorderToModify(3)} />
+
+                            </div>
+
+
+                            {this.drawTable()}
+                        </div>
+
+                        <div>
+                            <h2>LaTeX</h2>
+                            <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
+                            {this.convertToLatex()}
+                            <h2>HTML</h2>
+                            <button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy HTML to clipboard</button>
+                            {this.convertToHTML()}
+                            <h2>Text</h2>
+                            <button className="table-buttons" type="button" onClick={() => this.copyText()}>Copy Text to clipboard</button>
+                            {this.convertToText()}
+                            <Button>TEST</Button>
+                        </div>
                     </div>
-                    <div className="table-buttons-div">
-                        <h3>Selected Cell Controls</h3>
-                        <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} />
-                        <button className="table-buttons" type="button" onClick={() => this.setCellBackgroundColours()}>Set Selected Cells to this colour</button>
-                        <button className="table-buttons" type="button" onClick={() => this.setCellBorderColours()}>Set Selected Cell borders to this colour</button>
-                        <button className="table-buttons" type="button" onClick={() => this.setHorizontalTextAlignment("left")}>Left text alignment</button>
-                        <button className="table-buttons" type="button" onClick={() => this.setHorizontalTextAlignment("center")}>Centre text alignment</button>
-                        <button className="table-buttons" type="button" onClick={() => this.setHorizontalTextAlignment("right")}>Right text alignment</button>
-                    </div>
-                    <div className="table-buttons-div">
-                        <h3>Border Styling</h3>
-                        <select name="chooseborderstyle" onChange={(e) => this.chooseBorderStyle(e)}>
-                            <option value="solid">Solid</option>
-                            <option value="dotted">Dotted</option>
-                            <option value="dashed">Dashed</option>
-                        </select>
-                        Top
-                        <input type="checkbox" value="top" checked={this.state.bordermodify[0]} onClick={() => this.selectBorderToModify(0)}/>
-                        Right
-                        <input type="checkbox" value="right" checked={this.state.bordermodify[1]} onClick={() => this.selectBorderToModify(1)}/>
-                        Bottom
-                        <input type="checkbox" value="bottom" checked={this.state.bordermodify[2]} onClick={() => this.selectBorderToModify(2)}/>
-                        Left
-                        <input type="checkbox" value="left" checked={this.state.bordermodify[3]} onClick={() => this.selectBorderToModify(3)}/>
-                        
-                    </div>
-
-
-                    {this.drawTable()}
-                </div>
-                
-                <div>
-                    <h2>LaTeX</h2>
-                    <button className="table-buttons" type="button" onClick={() => this.copyLatex()}>Copy LaTeX to clipboard</button>
-                    {this.convertToLatex()}
-                    <h2>HTML</h2>
-                    <button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy HTML to clipboard</button>
-                    {this.convertToHTML()}
-                    <h2>Text</h2>
-                    <button className="table-buttons" type="button" onClick={() => this.copyText()}>Copy Text to clipboard</button>
-                    {this.convertToText()}
-                </div>
+                </main>
             </div>
         );
     }

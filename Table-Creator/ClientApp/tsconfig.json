@@ -23,6 +23,8 @@
     "sourceRoot": "${workspaceRoot}/ClientApp/src"
   },
   "include": [
-    "src"
+    "src/**/*",
+    "../node_modules/**/*"
+
   ]
 }

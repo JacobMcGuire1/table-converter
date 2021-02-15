@@ -24,6 +24,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var React = require("react");
 require("./MyTable.css");
 var table_1 = require("table");
+var core_1 = require("@material-ui/core");
 function escapeLatex(str) {
     str = str.split("\\").join("\\textbackslash");
     str = str.split("&").join("\\&");
@@ -544,6 +545,10 @@ var MyTable = /** @class */ (function (_super) {
         var newtable = this.state.table.map(function (x) { return x; });
         this.setState({ table: newtable });
     };
+    MyTable.prototype.openTextAlignment = function (e) {
+        var popover = document.getElementById("alignmentpopover");
+        popover.anchorEl = e.currentTarget;
+    };
     //Merges the currently selected cells.
     //Uses the outer cells to create a rectangle of cells to merge if the selection is not a rectangle already.
     //Also includes the borders of other merged cells in this calculation.
@@ -905,52 +910,73 @@ var MyTable = /** @class */ (function (_super) {
     };
     MyTable.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", { className: "root-div", onClick: function (e) { return _this.bigClick(e); } },
-            React.createElement("div", null,
-                React.createElement("h2", null, "Table"),
-                React.createElement("div", { className: "table-buttons-div" },
-                    React.createElement("h3", null, "Global Controls"),
-                    React.createElement("button", { type: "button", onClick: function () { return _this.addRow(); } }, "Add Row"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.addCol(); } }, "Add Column"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.mergeCells(); } }, "Merge Selected Cells"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.splitCells(); } }, "Split Selected Cells"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.deselectAllCells(); } }, "Deselect All Cells"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.selectAllCells(); } }, "Select All Cells"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.convertToImage(); } }, "Convert to image")),
-                React.createElement("div", { className: "table-buttons-div" },
-                    React.createElement("h3", null, "Selected Cell Controls"),
-                    React.createElement("input", { type: "color", onChange: function (e) { return _this.chooseColour(e); }, ref: this.colourpickerref }),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBackgroundColours(); } }, "Set Selected Cells to this colour"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setCellBorderColours(); } }, "Set Selected Cell borders to this colour"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setHorizontalTextAlignment("left"); } }, "Left text alignment"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setHorizontalTextAlignment("center"); } }, "Centre text alignment"),
-                    React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setHorizontalTextAlignment("right"); } }, "Right text alignment")),
-                React.createElement("div", { className: "table-buttons-div" },
-                    React.createElement("h3", null, "Border Styling"),
-                    React.createElement("select", { name: "chooseborderstyle", onChange: function (e) { return _this.chooseBorderStyle(e); } },
-                        React.createElement("option", { value: "solid" }, "Solid"),
-                        React.createElement("option", { value: "dotted" }, "Dotted"),
-                        React.createElement("option", { value: "dashed" }, "Dashed")),
-                    "Top",
-                    React.createElement("input", { type: "checkbox", value: "top", checked: this.state.bordermodify[0], onClick: function () { return _this.selectBorderToModify(0); } }),
-                    "Right",
-                    React.createElement("input", { type: "checkbox", value: "right", checked: this.state.bordermodify[1], onClick: function () { return _this.selectBorderToModify(1); } }),
-                    "Bottom",
-                    React.createElement("input", { type: "checkbox", value: "bottom", checked: this.state.bordermodify[2], onClick: function () { return _this.selectBorderToModify(2); } }),
-                    "Left",
-                    React.createElement("input", { type: "checkbox", value: "left", checked: this.state.bordermodify[3], onClick: function () { return _this.selectBorderToModify(3); } })),
-                this.drawTable()),
-            React.createElement("div", null,
-                React.createElement("h2", null, "LaTeX"),
-                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
-                this.convertToLatex(),
-                React.createElement("h2", null, "HTML"),
-                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyHTML(); } }, "Copy HTML to clipboard"),
-                this.convertToHTML(),
-                React.createElement("h2", null, "Text"),
-                React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyText(); } }, "Copy Text to clipboard"),
-                this.convertToText())));
+        return (React.createElement("div", null,
+            React.createElement(core_1.Drawer, { anchor: "left", variant: "permanent", open: true },
+                React.createElement(core_1.List, null,
+                    React.createElement(core_1.ListItem, null,
+                        React.createElement("b", null, "Global Controls")),
+                    React.createElement(core_1.ListItem, { divider: true }),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.addRow(); } }, "Add Row"),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.addCol(); } }, "Add Column"),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.selectAllCells(); } }, "Select All"),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.deselectAllCells(); } }, "Select None"),
+                    React.createElement(core_1.ListItem, { divider: true }),
+                    React.createElement(core_1.ListItem, null,
+                        React.createElement("b", null, "Selected Cell Controls")),
+                    React.createElement(core_1.ListItem, { divider: true }),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.mergeCells(); } },
+                        React.createElement(core_1.ListItemText, { primary: "Merge", secondary: "Combine the selected cells into one" })),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.splitCells(); } },
+                        React.createElement(core_1.ListItemText, { primary: "Split", secondary: "Undo a merge" })),
+                    React.createElement(core_1.ListItem, null,
+                        "Colour",
+                        React.createElement("input", { type: "color", onChange: function (e) { return _this.chooseColour(e); }, ref: this.colourpickerref, className: "colour-picker" })),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.setCellBackgroundColours(); } },
+                        React.createElement(core_1.ListItemText, { primary: "Set cell backgrounds to this colour" })),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.setCellBorderColours(); } },
+                        React.createElement(core_1.ListItemText, { primary: "Set cell borders to this colour" })),
+                    React.createElement(core_1.ListItem, null,
+                        React.createElement(core_1.ListItemText, { primary: "Text Alignment:" }),
+                        React.createElement(core_1.Button, { onClick: function () { return _this.setHorizontalTextAlignment("left"); } }, "Left"),
+                        React.createElement(core_1.Button, { onClick: function () { return _this.setHorizontalTextAlignment("center"); } }, "Centre"),
+                        React.createElement(core_1.Button, { onClick: function () { return _this.setHorizontalTextAlignment("right"); } }, "Right")),
+                    React.createElement(core_1.ListItem, null,
+                        React.createElement(core_1.ListItemText, { primary: "Border Style:" }),
+                        React.createElement("select", { name: "chooseborderstyle", onChange: function (e) { return _this.chooseBorderStyle(e); } },
+                            React.createElement("option", { value: "solid" }, "Solid"),
+                            React.createElement("option", { value: "dotted" }, "Dotted"),
+                            React.createElement("option", { value: "dashed" }, "Dashed"))))),
+            React.createElement("main", null,
+                React.createElement("div", { className: "root-div", onClick: function (e) { return _this.bigClick(e); } },
+                    React.createElement("div", null,
+                        React.createElement("h2", null, "Table"),
+                        React.createElement("div", { className: "table-buttons-div" },
+                            React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines"),
+                            React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.convertToImage(); } }, "Convert to image")),
+                        React.createElement("div", { className: "table-buttons-div" },
+                            React.createElement("h3", null, "Selected Cell Controls")),
+                        React.createElement("div", { className: "table-buttons-div" },
+                            React.createElement("h3", null, "Border Styling"),
+                            "Top",
+                            React.createElement("input", { type: "checkbox", value: "top", checked: this.state.bordermodify[0], onClick: function () { return _this.selectBorderToModify(0); } }),
+                            "Right",
+                            React.createElement("input", { type: "checkbox", value: "right", checked: this.state.bordermodify[1], onClick: function () { return _this.selectBorderToModify(1); } }),
+                            "Bottom",
+                            React.createElement("input", { type: "checkbox", value: "bottom", checked: this.state.bordermodify[2], onClick: function () { return _this.selectBorderToModify(2); } }),
+                            "Left",
+                            React.createElement("input", { type: "checkbox", value: "left", checked: this.state.bordermodify[3], onClick: function () { return _this.selectBorderToModify(3); } })),
+                        this.drawTable()),
+                    React.createElement("div", null,
+                        React.createElement("h2", null, "LaTeX"),
+                        React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy LaTeX to clipboard"),
+                        this.convertToLatex(),
+                        React.createElement("h2", null, "HTML"),
+                        React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyHTML(); } }, "Copy HTML to clipboard"),
+                        this.convertToHTML(),
+                        React.createElement("h2", null, "Text"),
+                        React.createElement("button", { className: "table-buttons", type: "button", onClick: function () { return _this.copyText(); } }, "Copy Text to clipboard"),
+                        this.convertToText(),
+                        React.createElement(core_1.Button, null, "TEST"))))));
     };
     return MyTable;
 }(React.Component));

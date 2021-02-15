@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@material-ui/core": "^4.11.3",
     "@testing-library/react": "^11.2.2",
+    "@types/material-ui": "^0.21.8",
     "@types/react-dom": "^16.9.9",
     "@types/react-router": "^5.1.8",
     "bootstrap": "^4.1.3",
