@@ -861,6 +861,15 @@ var MyTable = /** @class */ (function (_super) {
      * This can then be viewed and downloaded.
      */
     MyTable.prototype.convertToImage = function () {
+        var _this = this;
+        var selectedcells = this.getSelectedCells();
+        selectedcells.forEach(function (item) {
+            item.deselect();
+        });
+        var newtable = this.state.table.map(function (x) { return x; });
+        this.setState({ table: newtable }, function () { return _this.convertToPNG(); });
+    };
+    MyTable.prototype.convertToPNG = function () {
         var svgthing = document.getElementById("svg");
         var svgData = new XMLSerializer().serializeToString(svgthing);
         var htmlcanvas = document.getElementById("mycanvas");
@@ -893,7 +902,7 @@ var MyTable = /** @class */ (function (_super) {
         }
         var tablewidth = colwidths.reduce(function (a, b) { return a + b; }, 0) + (this.state.dividerpixels * this.getColCount());
         var tableheight = rowheights.reduce(function (a, b) { return a + b; }, 0) + (this.state.dividerpixels * this.getRowCount());
-        return (React.createElement("div", null,
+        return (React.createElement("div", { className: "maintablediv" },
             React.createElement("svg", { width: tablewidth, height: tableheight, id: "svg", onMouseDown: function (e) { return _this.svgCreateRect(e); }, onMouseUp: function (e) { return _this.svgDestroyRect(e); }, onMouseMove: function (e) { return _this.svgDragRect(e); }, onMouseLeave: function (e) { return _this.svgDestroyRect(e); } },
                 this.state.table.map(function (innerArray, row) { return (innerArray.map(function (cell, col) {
                     return cell.draw((colwidths.slice(0, col)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (col)), (rowheights.slice(0, row)).reduce(function (a, b) { return a + b; }, 0) + (_this.state.dividerpixels * (row)), //row * (this.state.mincellheight + this.state.dividerpixels),
@@ -971,28 +980,16 @@ var MyTable = /** @class */ (function (_super) {
                             React.createElement("option", { value: "solid" }, "Solid"),
                             React.createElement("option", { value: "dotted" }, "Dotted"),
                             React.createElement("option", { value: "dashed" }, "Dashed"))))),
-            React.createElement("main", null,
-                React.createElement("div", { className: "root-div", onClick: function (e) { return _this.bigClick(e); } },
-                    React.createElement("div", { className: "maintablediv" },
-                        React.createElement("div", { className: "table-buttons-div" },
-                            React.createElement("h3", null, "Border Styling"),
-                            "Top",
-                            React.createElement("input", { type: "checkbox", value: "top", checked: this.state.bordermodify[0], onClick: function () { return _this.selectBorderToModify(0); } }),
-                            "Right",
-                            React.createElement("input", { type: "checkbox", value: "right", checked: this.state.bordermodify[1], onClick: function () { return _this.selectBorderToModify(1); } }),
-                            "Bottom",
-                            React.createElement("input", { type: "checkbox", value: "bottom", checked: this.state.bordermodify[2], onClick: function () { return _this.selectBorderToModify(2); } }),
-                            "Left",
-                            React.createElement("input", { type: "checkbox", value: "left", checked: this.state.bordermodify[3], onClick: function () { return _this.selectBorderToModify(3); } })),
-                        this.drawTable()),
-                    React.createElement("div", null,
-                        React.createElement(core_1.AppBar, { position: "static" },
-                            React.createElement(core_1.Tabs, { id: "tabbar", value: this.state.tab, onChange: function (e, v) { return _this.changeTab(e, v); } },
-                                React.createElement(core_1.Tab, { label: "LaTeX", tabIndex: 0 }),
-                                React.createElement(core_1.Tab, { label: "HTML", tabIndex: 1 }),
-                                React.createElement(core_1.Tab, { label: "Text", tabIndex: 2 }),
-                                React.createElement(core_1.Tab, { label: "PNG", tabIndex: 3 }))),
-                        React.createElement("div", { id: "tabContentDiv" }, this.getTabContent()))))));
+            React.createElement("div", { className: "root-div", onClick: function (e) { return _this.bigClick(e); } },
+                this.drawTable(),
+                React.createElement("div", null,
+                    React.createElement(core_1.AppBar, { position: "static" },
+                        React.createElement(core_1.Tabs, { id: "tabbar", value: this.state.tab, onChange: function (e, v) { return _this.changeTab(e, v); } },
+                            React.createElement(core_1.Tab, { label: "LaTeX", tabIndex: 0 }),
+                            React.createElement(core_1.Tab, { label: "HTML", tabIndex: 1 }),
+                            React.createElement(core_1.Tab, { label: "Text", tabIndex: 2 }),
+                            React.createElement(core_1.Tab, { label: "PNG", tabIndex: 3 }))),
+                    React.createElement("div", { id: "tabContentDiv" }, this.getTabContent())))));
     };
     return MyTable;
 }(React.Component));

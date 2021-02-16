@@ -961,6 +961,16 @@ class MyTable extends React.Component<Props, TableState> {
      * This can then be viewed and downloaded.
      */
     private convertToImage() {
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.deselect()
+            });
+        let newtable = this.state.table.map((x) => x);
+        this.setState({ table: newtable }, () => this.convertToPNG());
+    }
+
+    private convertToPNG() {
         let svgthing = document.getElementById("svg");
         let svgData = new XMLSerializer().serializeToString(svgthing!);
 
@@ -1003,7 +1013,7 @@ class MyTable extends React.Component<Props, TableState> {
         let tableheight = rowheights.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getRowCount());
 
         return (
-            <div>
+            <div className="maintablediv">
                 <svg width={tablewidth} height={tableheight} id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
                     {this.state.table.map((innerArray, row) => (
                         innerArray.map(
@@ -1043,7 +1053,7 @@ class MyTable extends React.Component<Props, TableState> {
 
     }
 
-    private changeTab(e: React.ChangeEvent<{}>, v) {
+    private changeTab(e: React.ChangeEvent<{}>, v: any) {
         //let tabbar = document.getElementById("tabbar")!;
         //console.log(v);
         this.setState({ tab: (v as number) });
@@ -1136,12 +1146,14 @@ class MyTable extends React.Component<Props, TableState> {
                     </List>
                 </Drawer>
 
-                <main>
-                    <div className="root-div" onClick={(e) => this.bigClick(e)}>
-                        <div className="maintablediv">
+                
+                <div className="root-div" onClick={(e) => this.bigClick(e)}>
+                        
+
+                        {/*
                             <div className="table-buttons-div">
                                 <h3>Border Styling</h3>
-                                
+
                             Top
                             <input type="checkbox" value="top" checked={this.state.bordermodify[0]} onClick={() => this.selectBorderToModify(0)} />
                             Right
@@ -1152,27 +1164,26 @@ class MyTable extends React.Component<Props, TableState> {
                             <input type="checkbox" value="left" checked={this.state.bordermodify[3]} onClick={() => this.selectBorderToModify(3)} />
 
                             </div>
+                        */}
 
+                        {this.drawTable()}
 
-                            {this.drawTable()}
+                    <div>
+                        <AppBar position="static">
+                            <Tabs id="tabbar" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
+                                <Tab label="LaTeX" tabIndex={0}/>
+                                <Tab label="HTML" tabIndex={1}/>
+                                <Tab label="Text" tabIndex={2}/>
+                                <Tab label="PNG" tabIndex={3}/>
+                            </Tabs>
+                        </AppBar>
+                        <div id="tabContentDiv">
+                            {this.getTabContent()}
                         </div>
-
-                        <div>
-                            <AppBar position="static">
-                                <Tabs id="tabbar" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
-                                    <Tab label="LaTeX" tabIndex={0}/>
-                                    <Tab label="HTML" tabIndex={1}/>
-                                    <Tab label="Text" tabIndex={2}/>
-                                    <Tab label="PNG" tabIndex={3}/>
-                                </Tabs>
-                            </AppBar>
-                            <div id="tabContentDiv">
-                                {this.getTabContent()}
-                            </div>
                             
-                        </div>
                     </div>
-                </main>
+                </div>
+                
             </div>
         );
     }
