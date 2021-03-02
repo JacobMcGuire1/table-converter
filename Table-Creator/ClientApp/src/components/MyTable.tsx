@@ -274,7 +274,7 @@ class CellDetails {
         }
         html += "border: 1px solid " + this.bordercolour + ";";
         html += "padding: 5px;";
-        html += "text-align: center;";
+        html += "text-align: " + this.csstextalign + ";";
         html += "border-style:" + this.borderstyle + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
 
@@ -443,7 +443,6 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = this.state.table.map((x) => x);
         let row: CellDetails[] = [];
         for (let col = 0; col < this.getColCount(); col++) {
-            console.log("temp");
             let cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
             row.push(cell);
         }
@@ -1057,7 +1056,10 @@ class MyTable extends React.Component<Props, TableState> {
         //let tabbar = document.getElementById("tabbar")!;
         //console.log(v);
         this.setState({ tab: (v as number) });
+        this.uploadIMG();
     }
+
+    
 
     private getTabContent() {
         switch (this.state.tab) {
@@ -1092,6 +1094,46 @@ class MyTable extends React.Component<Props, TableState> {
         }             
     }
 
+    private async populateWeatherData() {
+        const response = await fetch('weatherforecast');
+        const data = await response.json();
+        const response2 = await fetch('TableImageOCR');
+        const data2 = await response2.json();
+        console.log(data);
+        console.log(data2);
+    }
+
+    private async uploadIMG() {
+        var test = await fetch('TableImageOCR/UploadTable', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: "45"
+        });
+        const data2 = await test.json();
+        console.log(data2);
+    }
+
+    private async UploadTable() {
+        let fileupload = document.getElementById("file") as HTMLInputElement;
+        let formData = new FormData();
+        formData.append('File', fileupload.files[0]);
+
+        var request = await fetch('TableImageOCR/UploadTable', {
+            method: 'POST',
+            headers: {
+            },
+            body: formData
+        });
+    }
+
+    private handleNewTableFile(e: React.ChangeEvent<HTMLInputElement>) {
+        let file = e.target.files[0];
+        console.log("test");
+    }
+
     public render() {
         return (
             <div>
@@ -1104,7 +1146,7 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.addCol()}>Add Column</ListItem>
                         <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
                         <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
-                        <ListItem button onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>Toggle horizontal lines (Temp)</ListItem>
+                        <ListItem button onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>(Temp)</ListItem>
 
                         <ListItem divider />
 
@@ -1142,13 +1184,16 @@ class MyTable extends React.Component<Props, TableState> {
                                 <option value="dashed">Dashed</option>
                             </select>
                         </ListItem>
-
+                        <ListItem>
+                            <ListItemText primary="Upload Table Image" />
+                            <input type="file" id="file" accept="image/*" onChange={(e) => this.handleNewTableFile(e) }/>
+                            <Button onClick={() => this.UploadTable()}>Upload</Button>
+                        </ListItem>
                     </List>
                 </Drawer>
 
                 
                 <div className="root-div" onClick={(e) => this.bigClick(e)}>
-                        
 
                         {/*
                             <div className="table-buttons-div">

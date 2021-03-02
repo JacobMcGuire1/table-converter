@@ -36,7 +36,7 @@ namespace Table_Creator
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                //app.UseBrowserLink();
+                app.UseBrowserLink();
             }
             else
             {
@@ -45,11 +45,11 @@ namespace Table_Creator
                 app.UseHsts();
             }
 
-            
+            app.UseSpaStaticFiles();
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-            app.UseSpaStaticFiles();
+            
 
             app.UseRouting();
 

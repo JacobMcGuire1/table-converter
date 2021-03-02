@@ -12,6 +12,42 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
 var __spreadArrays = (this && this.__spreadArrays) || function () {
     for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
     for (var r = Array(s), k = 0, i = 0; i < il; i++)
@@ -268,7 +304,7 @@ var CellDetails = /** @class */ (function () {
         }
         html += "border: 1px solid " + this.bordercolour + ";";
         html += "padding: 5px;";
-        html += "text-align: center;";
+        html += "text-align: " + this.csstextalign + ";";
         html += "border-style:" + this.borderstyle + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
         return html;
@@ -414,7 +450,6 @@ var MyTable = /** @class */ (function (_super) {
         var newtable = this.state.table.map(function (x) { return x; });
         var row = [];
         for (var col = 0; col < this.getColCount(); col++) {
-            console.log("temp");
             var cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
             row.push(cell);
         }
@@ -921,6 +956,7 @@ var MyTable = /** @class */ (function (_super) {
         //let tabbar = document.getElementById("tabbar")!;
         //console.log(v);
         this.setState({ tab: v });
+        this.uploadIMG();
     };
     MyTable.prototype.getTabContent = function () {
         var _this = this;
@@ -943,6 +979,79 @@ var MyTable = /** @class */ (function (_super) {
                     React.createElement(core_1.Button, { className: "table-buttons", type: "button", onClick: function () { return _this.copyLatex(); } }, "Copy to clipboard")));
         }
     };
+    MyTable.prototype.populateWeatherData = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var response, data, response2, data2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, fetch('weatherforecast')];
+                    case 1:
+                        response = _a.sent();
+                        return [4 /*yield*/, response.json()];
+                    case 2:
+                        data = _a.sent();
+                        return [4 /*yield*/, fetch('TableImageOCR')];
+                    case 3:
+                        response2 = _a.sent();
+                        return [4 /*yield*/, response2.json()];
+                    case 4:
+                        data2 = _a.sent();
+                        console.log(data);
+                        console.log(data2);
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    MyTable.prototype.uploadIMG = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var test, data2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, fetch('TableImageOCR/UploadTable', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: "45"
+                        })];
+                    case 1:
+                        test = _a.sent();
+                        return [4 /*yield*/, test.json()];
+                    case 2:
+                        data2 = _a.sent();
+                        console.log(data2);
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    MyTable.prototype.UploadTable = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var fileupload, formData, request;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        fileupload = document.getElementById("file");
+                        formData = new FormData();
+                        formData.append('File', fileupload.files[0]);
+                        return [4 /*yield*/, fetch('TableImageOCR/UploadTable', {
+                                method: 'POST',
+                                headers: {},
+                                body: formData
+                            })];
+                    case 1:
+                        request = _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    MyTable.prototype.handleNewTableFile = function (e) {
+        var file = e.target.files[0];
+        console.log("test");
+    };
     MyTable.prototype.render = function () {
         var _this = this;
         return (React.createElement("div", null,
@@ -954,7 +1063,7 @@ var MyTable = /** @class */ (function (_super) {
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.addCol(); } }, "Add Column"),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.selectAllCells(); } }, "Select All"),
                     React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.deselectAllCells(); } }, "Select None"),
-                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "Toggle horizontal lines (Temp)"),
+                    React.createElement(core_1.ListItem, { button: true, onClick: function () { return _this.setState({ horizontallines: !_this.state.horizontallines }); } }, "(Temp)"),
                     React.createElement(core_1.ListItem, { divider: true }),
                     React.createElement(core_1.ListItem, null,
                         React.createElement("b", null, "Selected Cell Controls")),
@@ -979,7 +1088,11 @@ var MyTable = /** @class */ (function (_super) {
                         React.createElement("select", { name: "chooseborderstyle", onChange: function (e) { return _this.chooseBorderStyle(e); } },
                             React.createElement("option", { value: "solid" }, "Solid"),
                             React.createElement("option", { value: "dotted" }, "Dotted"),
-                            React.createElement("option", { value: "dashed" }, "Dashed"))))),
+                            React.createElement("option", { value: "dashed" }, "Dashed"))),
+                    React.createElement(core_1.ListItem, null,
+                        React.createElement(core_1.ListItemText, { primary: "Upload Table Image" }),
+                        React.createElement("input", { type: "file", id: "file", accept: "image/*", onChange: function (e) { return _this.handleNewTableFile(e); } }),
+                        React.createElement(core_1.Button, { onClick: function () { return _this.UploadTable(); } }, "Upload")))),
             React.createElement("div", { className: "root-div", onClick: function (e) { return _this.bigClick(e); } },
                 this.drawTable(),
                 React.createElement("div", null,
