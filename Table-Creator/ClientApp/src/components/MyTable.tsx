@@ -1,9 +1,9 @@
 ﻿//import React from 'react'; // we need this to make JSX compile
 import * as React from 'react';
-import { findDOMNode } from 'react-dom';
+//import { findDOMNode } from 'react-dom';
 import './MyTable.css';
 import { table } from 'table';
-import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar} from '@material-ui/core';
+import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField} from '@material-ui/core';
 
 
 type Props = {
@@ -20,6 +20,7 @@ type TableState = {
     startselectpoint: [number, number];
     endselectpoint: [number, number];
     bordermodify: [boolean, boolean, boolean, boolean];
+    newtableform: [number, number];
     tab: number;
 }
 
@@ -152,7 +153,7 @@ class CellDetails {
         return this.data;
     }
     public getMergeSize(): number[] {
-        if (this.mergechildren == []) return [-1, -1];
+        if (this.mergechildren === []) return [-1, -1];
         let mincol = this.p.col;
         let maxcol = this.p.col;
         let minrow = this.p.row;
@@ -371,7 +372,9 @@ class MyTable extends React.Component<Props, TableState> {
         super(props);
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true], tab: 0};
+        let rows = 5;
+        let cols = 5;
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true], tab: 0, newtableform: [rows, cols]};
         this.testPopulateTable();
     }
 
@@ -770,9 +773,9 @@ class MyTable extends React.Component<Props, TableState> {
         }
         if (this.state.horizontallines && latextable.length > 0) latextable[0] = " \\hline" + "\n" + latextable[0];
 
-        let bs = "\\";
-        let cu1 = "{";
-        let cu2 = "}";
+        //let bs = "\\";
+        //let cu1 = "{";
+        //let cu2 = "}";
 
         let latex = "";
         latex += "\\begin{center}";
@@ -977,7 +980,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         htmlcanvas.className = "show";
 
-        let ctx = htmlcanvas.getContext('2d')!;
+        //let ctx = htmlcanvas.getContext('2d')!;
 
         let img = document.createElement("img");
         img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svgData));
@@ -1121,17 +1124,32 @@ class MyTable extends React.Component<Props, TableState> {
         let formData = new FormData();
         formData.append('File', fileupload.files[0]);
 
-        var request = await fetch('TableImageOCR/UploadTable', {
+        let request = await fetch('TableImageOCR/UploadTable', {
             method: 'POST',
             headers: {
             },
             body: formData
         });
+        let data2 = await request.json();
+
     }
 
     private handleNewTableFile(e: React.ChangeEvent<HTMLInputElement>) {
-        let file = e.target.files[0];
-        console.log("test");
+        //let file = e.target.files[0];
+        //console.log("test");
+    }
+
+    private createNewTable(rows: number, cols: number, keepdata: boolean){
+        let newtable: CellDetails[][] = [];
+        for (let row = 0; row < rows; row++) {
+            let rowarray: CellDetails[] = [];
+            for (let col = 0; col < cols; col++) {
+                let cell = new CellDetails(new TablePoint(row, col));
+                rowarray.push(cell);
+            }
+            newtable.push(rowarray);
+        }
+        this.setState({table: newtable});
     }
 
     public render() {
@@ -1139,9 +1157,34 @@ class MyTable extends React.Component<Props, TableState> {
             <div>
                 <Drawer anchor="left" variant="permanent" open={true}>
                     <List>
-                        <ListItem>
+                        <ListItem divider />
+                        <ListItem divider>
+                            <b>New Table</b>
+                        </ListItem>
+
+                        <ListItem >
+                            <form>
+                                <label htmlFor="rowsinput">Rows </label>
+                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setState({newtableform: [parseInt(e.target.value), this.state.newtableform[1]]})}/>
+                                <label htmlFor="rowsinput">Cols </label>
+                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setState({newtableform: [this.state.newtableform[0], parseInt(e.target.value)]})}/>
+                                <Button onClick={() => this.createNewTable(this.state.newtableform[0], this.state.newtableform[1], false)}>Create</Button>
+                            </form>
+                        </ListItem>
+
+                        <ListItem className="listitemtitle">
+                            Upload Table Image
+                        </ListItem>
+                        <ListItem className="listitemtitle">
+                            <input type="file" id="file" accept="image/*" onChange={(e) => this.handleNewTableFile(e) }/>
+                            <Button onClick={() => this.UploadTable()}>Upload</Button>
+                        </ListItem>
+
+                        <ListItem divider />
+                        <ListItem divider>
                             <b>Global Controls</b>
                         </ListItem>
+                        
                         <ListItem button onClick={() => this.addRow()}>Add Row</ListItem>
                         <ListItem button onClick={() => this.addCol()}>Add Column</ListItem>
                         <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
@@ -1150,7 +1193,7 @@ class MyTable extends React.Component<Props, TableState> {
 
                         <ListItem divider />
 
-                        <ListItem>
+                        <ListItem divider>
                             <b>Selected Cell Controls</b>
                         </ListItem>
                         
@@ -1184,11 +1227,7 @@ class MyTable extends React.Component<Props, TableState> {
                                 <option value="dashed">Dashed</option>
                             </select>
                         </ListItem>
-                        <ListItem>
-                            <ListItemText primary="Upload Table Image" />
-                            <input type="file" id="file" accept="image/*" onChange={(e) => this.handleNewTableFile(e) }/>
-                            <Button onClick={() => this.UploadTable()}>Upload</Button>
-                        </ListItem>
+                        
                     </List>
                 </Drawer>
 
@@ -1260,9 +1299,6 @@ interface SVGCellProps {
 }
 
 class SVGCell extends React.Component<SVGCellProps, {}> {
-    constructor(props: SVGCellProps) {
-        super(props);
-    }
     private changeData(e: React.ChangeEvent<HTMLTextAreaElement>) {
         this.props.changeData(this.props.cell, e.target.value);
     }
@@ -1275,7 +1311,6 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         e.target.value = value;
     }
     private getText() {
-        let lines = this.props.cell.getData().split("\n");
         if (!this.props.editing) {
             //<text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{lines[0]}</text>
             //if (lines.length === 1) {
@@ -1292,7 +1327,6 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
                 </g>
             );
         } else {
-            let rows = lines.length;
             return (
                 <foreignObject x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height}>
                     <textarea className="cell-input" value={this.props.cell.getData()} rows={ 100 } tabIndex={0} onChange={(e) => this.changeData(e)} onBlur={(e) => this.disableEdit(e)} autoFocus={true} onFocus={(e) => this.moveCursorToEnd(e)}/>
@@ -1314,7 +1348,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
         /*if (this.props.selected) {
             return "red";
         }*/
-        if (this.props.backgroundcolour == "") {
+        if (this.props.backgroundcolour === "") {
             return "white"
         }
         return this.props.backgroundcolour;
