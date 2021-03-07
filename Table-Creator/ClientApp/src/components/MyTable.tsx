@@ -10,7 +10,6 @@ import cloneDeep from 'lodash/cloneDeep';
 
 let jsonstate = "";
 
-var statestack: TableState[] = [];
 var tablestack: CellDetails[][][] = [];
 
 
@@ -472,7 +471,6 @@ class MyTable extends React.Component<Props, TableState> {
         let colcount = this.getColCount();
         for (let row = 0; row < this.getRowCount(); row++) {
             let cell = new CellDetails(new TablePoint(row, colcount));
-            console.log(cell.p.toString());
             newtable[row].push(cell);
         }
         this.addTableStateToUndoStack();
@@ -1097,18 +1095,6 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
-    private oldundo(){
-        let prevstate = statestack.pop();
-        console.log(prevstate);
-        if(prevstate !== undefined){
-            this.setState(
-                prevstate,
-                () =>
-                    statestack.pop()
-                );
-        }
-    }
-
     private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
 
     }
@@ -1180,16 +1166,16 @@ class MyTable extends React.Component<Props, TableState> {
     private async UploadTable() {
         let fileupload = document.getElementById("file") as HTMLInputElement;
         let formData = new FormData();
-        formData.append('File', fileupload.files[0]);
-
-        let request = await fetch('TableImageOCR/UploadTable', {
-            method: 'POST',
-            headers: {
-            },
-            body: formData
-        });
-        let data2 = await request.json();
-
+        if (fileupload.files !== null){
+            formData.append('File', fileupload.files[0]);
+            let request = await fetch('TableImageOCR/UploadTable', {
+                method: 'POST',
+                headers: {
+                },
+                body: formData
+            });
+            let data2 = await request.json();
+        }
     }
 
     private handleNewTableFile(e: React.ChangeEvent<HTMLInputElement>) {

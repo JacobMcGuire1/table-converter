@@ -22,11 +22,11 @@
     "sourceMap": true,
     "inlineSources": true,
     "sourceRoot": "${workspaceRoot}/ClientApp/src",
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "src/**/*",
     "../node_modules/**/*"
-
   ]
 }
