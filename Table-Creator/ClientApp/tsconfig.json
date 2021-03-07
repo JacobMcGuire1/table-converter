@@ -21,7 +21,8 @@
     "jsx": "react",
     "sourceMap": true,
     "inlineSources": true,
-    "sourceRoot": "${workspaceRoot}/ClientApp/src"
+    "sourceRoot": "${workspaceRoot}/ClientApp/src",
+    "experimentalDecorators": true
   },
   "include": [
     "src/**/*",

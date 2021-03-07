@@ -3,7 +3,13 @@ import * as React from 'react';
 //import { findDOMNode } from 'react-dom';
 import './MyTable.css';
 import { table } from 'table';
-import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField} from '@material-ui/core';
+import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField } from '@material-ui/core';
+import { plainToClass, Type } from 'class-transformer';
+import 'reflect-metadata';
+
+let jsonstate = "";
+
+var statestack: TableState[] = [];
 
 
 type Props = {
@@ -21,6 +27,7 @@ type TableState = {
     endselectpoint: [number, number];
     bordermodify: [boolean, boolean, boolean, boolean];
     newtableform: [number, number];
+    changedatafield: string;
     tab: number;
 }
 
@@ -62,7 +69,7 @@ class TablePoint {
 }
 
 class CellDetails {
-    
+    @Type(() => TablePoint)
     public p: TablePoint;
     private hidden: boolean = false;
     private editing: boolean = false;
@@ -77,10 +84,11 @@ class CellDetails {
     public height: number = 0;
     public csstextalign: string = "center";
     public borders: [boolean, boolean, boolean, boolean] = [true, true, true, true]; //T R B L
-    
+
     constructor(p: TablePoint) {
         this.p = p;
-        this.setData(p.toString());
+        if (p !== undefined) this.setData(p.toString());
+        
     }
     public isSelected() {
         return this.selected;
@@ -374,7 +382,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.addCol = this.addCol.bind(this);
         let rows = 5;
         let cols = 5;
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true], tab: 0, newtableform: [rows, cols]};
+        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true], tab: 0, newtableform: [rows, cols], changedatafield: ""};
         this.testPopulateTable();
     }
 
@@ -1051,6 +1059,22 @@ class MyTable extends React.Component<Props, TableState> {
         this.colourpickerref.current!.value = this.chosencolour;
     }
 
+    componentDidUpdate(prevProps: Object, prevState: TableState ){
+        statestack.push(prevState);
+    }
+
+    private undo(){
+        let prevstate = statestack.pop();
+        console.log(prevstate);
+        if(prevstate !== undefined){
+            this.setState(
+                prevstate,
+                () =>
+                    statestack.pop()
+                );
+        }
+    }
+
     private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
 
     }
@@ -1140,17 +1164,52 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private createNewTable(rows: number, cols: number, keepdata: boolean){
-        let newtable: CellDetails[][] = [];
-        for (let row = 0; row < rows; row++) {
-            let rowarray: CellDetails[] = [];
-            for (let col = 0; col < cols; col++) {
-                let cell = new CellDetails(new TablePoint(row, col));
-                rowarray.push(cell);
+        if (rows <= 30 && cols <= 30){
+            let newtable: CellDetails[][] = [];
+            for (let row = 0; row < rows; row++) {
+                let rowarray: CellDetails[] = [];
+                for (let col = 0; col < cols; col++) {
+                    let cell = new CellDetails(new TablePoint(row, col));
+                    rowarray.push(cell);
+                }
+                newtable.push(rowarray);
             }
-            newtable.push(rowarray);
+            this.setState({table: newtable});
         }
-        this.setState({table: newtable});
+        else{
+            alert("Table dimensions too big.");
+        }
+        
     }
+
+    private setSelectedCellData(data: string){
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (cell) =>
+            cell.setData(data)
+        )
+        this.setState(this.state);
+    }
+
+    private stateToJSON() : string{
+        let json = JSON.stringify(this.state, null, '   ');
+        //console.log(json);
+        return json;
+    }
+
+    private importJSONState(jsonstate: string){
+        let newstate: TableState = JSON.parse(jsonstate);
+        for (let row = 0; row < newstate.table.length; row++) {
+            for (let col = 0; col < newstate.table[0].length; col++) {
+                let cell = newstate.table[row][col];
+                let p: TablePoint = plainToClass(TablePoint, cell.p);
+                cell.p = p;
+                newstate.table[row][col] = plainToClass(CellDetails, cell); //Convert the cell to an instance of the cell class.
+            }
+        }
+        this.setState(newstate);
+    }
+
 
     public render() {
         return (
@@ -1191,10 +1250,27 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
                         <ListItem button onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>(Temp)</ListItem>
 
+                        <ListItem button onClick={() => this.undo()}>Undo</ListItem>
+
+
+                        <ListItem button onClick={() => jsonstate = this.stateToJSON()}>Save state temp</ListItem>
+                        <ListItem button onClick={() => this.importJSONState(jsonstate)}>Restore state temp</ListItem>
+
                         <ListItem divider />
 
                         <ListItem divider>
                             <b>Selected Cell Controls</b>
+                        </ListItem>
+
+                        <ListItem >
+                            <form>
+                                <input type="text" id="celltextinput" name="celltextinput" value={this.state.changedatafield} onChange={(e) => this.setState({changedatafield: e.target.value})}/>
+                                <Button onClick={() => this.setSelectedCellData(this.state.changedatafield)}>Set Data</Button>
+                            </form>
+                        </ListItem>
+
+                        <ListItem button onClick={() => this.setSelectedCellData("")}>
+                            <ListItemText primary="Clear Data"/>
                         </ListItem>
                         
                         <ListItem button onClick={() => this.mergeCells()}>
