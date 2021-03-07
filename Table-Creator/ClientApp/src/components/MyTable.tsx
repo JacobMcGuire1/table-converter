@@ -1097,7 +1097,7 @@ class MyTable extends React.Component<Props, TableState> {
         if(prevtable !== undefined){
             let curtable = cloneDeep(this.state.table);
             redotablestack.push(curtable);
-            this.setState({table: prevtable});
+            this.setState({table: prevtable}, () => this.deselectAllCells());
         }
     }
 
@@ -1106,7 +1106,7 @@ class MyTable extends React.Component<Props, TableState> {
         if(newtable !== undefined){
             let table = cloneDeep(this.state.table);
             tablestack.push(table);
-            this.setState({table: newtable});
+            this.setState({table: newtable}, () => this.deselectAllCells());
         }
     }
 
