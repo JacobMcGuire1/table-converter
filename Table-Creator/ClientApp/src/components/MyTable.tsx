@@ -1333,7 +1333,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
         this.setState(newstate);
     }
-
+//
 
     public render() {
         return (
