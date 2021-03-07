@@ -1,5 +1,8 @@
 ﻿body {
 }
+.root{
+    height: 100%;
+}
 .root-div {
     /*white-space: normal;*/
     text-align: center;
@@ -7,6 +10,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     margin: 0px 0px 0px 350px;
+    height: 900px;
 }
 .table-buttons-div {
     margin: 10px;
@@ -92,6 +96,9 @@
 }
 
 .maintablediv {
+    display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .listitemtitle {

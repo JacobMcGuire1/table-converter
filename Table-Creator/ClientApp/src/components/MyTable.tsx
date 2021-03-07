@@ -11,6 +11,7 @@ import cloneDeep from 'lodash/cloneDeep';
 let jsonstate = "";
 
 var tablestack: CellDetails[][][] = [];
+var redotablestack: CellDetails[][][] = [];
 
 
 type Props = {
@@ -380,8 +381,10 @@ class CellDetails {
 class MyTable extends React.Component<Props, TableState> {
     private chosencolour = "#ffffff";
     private colourpickerref = React.createRef<HTMLInputElement>();
+    private svgref: React.RefObject<SVGSVGElement>;
     constructor(props: Props) {
         super(props);
+        this.svgref = React.createRef();
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
         let rows = 5;
@@ -1043,8 +1046,8 @@ class MyTable extends React.Component<Props, TableState> {
         let tableheight = rowheights.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getRowCount());
 
         return (
-            <div className="maintablediv">
-                <svg width={tablewidth} height={tableheight} id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
+            <div className="maintablediv" onClick={(e) => this.bigClick(e)}>
+                <svg ref={this.svgref} width={tablewidth} height={tableheight} id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
                     {this.state.table.map((innerArray, row) => (
                         innerArray.map(
                             (cell, col) =>
@@ -1084,6 +1087,7 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private addTableStateToUndoStack(){
+        redotablestack = [];
         let table = cloneDeep(this.state.table);
         tablestack.push(table);
     }
@@ -1091,12 +1095,27 @@ class MyTable extends React.Component<Props, TableState> {
     private undo(){
         let prevtable = tablestack.pop();
         if(prevtable !== undefined){
+            let curtable = cloneDeep(this.state.table);
+            redotablestack.push(curtable);
             this.setState({table: prevtable});
         }
     }
 
-    private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    private redo(){
+        let newtable = redotablestack.pop();
+        if(newtable !== undefined){
+            let table = cloneDeep(this.state.table);
+            tablestack.push(table);
+            this.setState({table: newtable});
+        }
+    }
 
+
+
+    private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (this.svgref.current !== null && !this.svgref.current.contains(e.target as Node)){
+            this.deselectAllCells();
+        }
     }
 
     private changeTab(e: React.ChangeEvent<{}>, v: any) {
@@ -1185,6 +1204,7 @@ class MyTable extends React.Component<Props, TableState> {
 
     private createNewTable(rows: number, cols: number, keepdata: boolean){
         if (rows <= 30 && cols <= 30){
+            this.addTableStateToUndoStack();
             let newtable: CellDetails[][] = [];
             for (let row = 0; row < rows; row++) {
                 let rowarray: CellDetails[] = [];
@@ -1234,7 +1254,7 @@ class MyTable extends React.Component<Props, TableState> {
 
     public render() {
         return (
-            <div>
+            <div className="adiv">
                 <Drawer anchor="left" variant="permanent" open={true}>
                     <List>
                         <ListItem divider />
@@ -1272,6 +1292,7 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>(Temp)</ListItem>
 
                         <ListItem button onClick={() => this.undo()}>Undo</ListItem>
+                        <ListItem button onClick={() => this.redo()}>Redo</ListItem>
 
 
                         <ListItem button onClick={() => jsonstate = this.stateToJSON()}>Save state temp</ListItem>
@@ -1329,7 +1350,7 @@ class MyTable extends React.Component<Props, TableState> {
                 </Drawer>
 
                 
-                <div className="root-div" onClick={(e) => this.bigClick(e)}>
+                <div className="root-div" >
 
                         {/*
                             <div className="table-buttons-div">
