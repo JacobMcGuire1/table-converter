@@ -10,7 +10,11 @@ test('Sanity check', () => {
     expect(1).toBe(1);
 });
 
-let mytable = new MyTable(new Props({}));
+let mytable = new MyTable(
+   {
+      initialrows: 5,
+      initialcols: 5
+   });
 
 test("Check first cell contents", () => {
    expect(mytable.state.table[0][0].getData()).toBe("0 0");

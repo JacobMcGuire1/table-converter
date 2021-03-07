@@ -20,6 +20,11 @@ type Props = {
     initialcols: number;
 }
 
+/*MyTable.defaultProps = {
+    initialrows: 5,
+    initialcols: 5
+};
+*/
 
 type TableState = {
     table: CellDetails[][];
@@ -394,19 +399,33 @@ class MyTable extends React.Component<Props, TableState> {
         this.latextextarearef = React.createRef();
         this.htmltextarearef = React.createRef();
         this.texttextarearef = React.createRef();
-        this.addRow = this.addRow.bind(this);
-        this.addCol = this.addCol.bind(this);
-        let rows = 5;
-        let cols = 5;
-        this.state = { table: [], mincellheight: 40, mincellwidth: 50, dividerpixels: 0, horizontallines: true, selecting: false, startselectpoint: [0, 0], endselectpoint: [0, 0], bordermodify: [true,true,true,true], tab: 0, newtableform: [rows, cols], changedatafield: ""};
+        this.state = { 
+            table: [], 
+            mincellheight: 40, 
+            mincellwidth: 50, 
+            dividerpixels: 0, 
+            horizontallines: true, 
+            selecting: false, 
+            startselectpoint: [0, 0], 
+            endselectpoint: [0, 0], 
+            bordermodify: [true,true,true,true], 
+            tab: 0, 
+            newtableform: [this.props.initialrows, this.props.initialcols], 
+            changedatafield: ""
+        };
         this.testPopulateTable();
     }
 
+    static defaultProps = {
+        initialrows: 5,
+        initialcols: 5
+    };
+
     //Creates and populates the initial table.
     private testPopulateTable() {
-        for (let row = 0; row < 5; row++) {
+        for (let row = 0; row < this.props.initialrows; row++) {
             let rowarray: CellDetails[] = [];
-            for (let col = 0; col < 5; col++) {
+            for (let col = 0; col < this.props.initialcols; col++) {
                 let cell = new CellDetails(new TablePoint(row, col));
                 rowarray.push(cell);
             }
