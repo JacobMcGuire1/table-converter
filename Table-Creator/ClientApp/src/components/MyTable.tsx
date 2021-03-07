@@ -7,6 +7,7 @@ import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, Ap
 import { plainToClass, Type } from 'class-transformer';
 import 'reflect-metadata';
 import cloneDeep from 'lodash/cloneDeep';
+import Papa from 'papaparse';
 
 let jsonstate = "";
 
@@ -1222,6 +1223,63 @@ class MyTable extends React.Component<Props, TableState> {
         
     }
 
+    private async getStringFromClipboard(){
+        return await navigator.clipboard.readText();
+    }
+
+    private async parseCSVFromClipboard(){
+        let csvarray = this.parseCSV(await this.getStringFromClipboard());
+        this.tableFromArray(csvarray);
+    }
+
+    private parseCSV(csv: string): string[][]{
+        let results = Papa.parse(csv, {header: false});
+        //TODO: Missing header info ATM.
+        let data = results.data as string[][];
+
+        let rows = data.length;
+        let a = data.map(row => Object.values(row).length);
+        let cols = Math.max(...a);
+
+        let arr: string[][] = [];
+        for (let row = 0; row < rows; row++) {
+            let rowarray: string[] = [];
+            let vals = Object.values(data[row]);
+            for (let col = 0; col < cols; col++) {
+                //let cell = new CellDetails(new TablePoint(row, col));
+                //cell.setData(array[row][col]);
+                let data = "";
+                if (col < vals.length) data = vals[col].split("\n").join("");
+                rowarray.push(data);
+            }
+            arr.push(rowarray);
+        }
+
+        return arr;
+    }
+
+    private tableFromArray(array: string[][]){
+        let rows = array.length;
+        let cols = Math.max(...array.map(row => row.length)); //cols is lenght of longest row.
+        if (rows <= 30 && cols <= 30){
+            this.addTableStateToUndoStack();
+            let newtable: CellDetails[][] = [];
+            for (let row = 0; row < rows; row++) {
+                let rowarray: CellDetails[] = [];
+                for (let col = 0; col < cols; col++) {
+                    let cell = new CellDetails(new TablePoint(row, col));
+                    cell.setData(array[row][col]);
+                    rowarray.push(cell);
+                }
+                newtable.push(rowarray);
+            }
+            this.setState({table: newtable});
+        }
+        else{
+            alert("Table dimensions too big.");
+        }
+    }
+
     private setSelectedCellData(data: string){
         this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
@@ -1297,6 +1355,8 @@ class MyTable extends React.Component<Props, TableState> {
 
                         <ListItem button onClick={() => jsonstate = this.stateToJSON()}>Save state temp</ListItem>
                         <ListItem button onClick={() => this.importJSONState(jsonstate)}>Restore state temp</ListItem>
+
+                        <ListItem button onClick={() => this.parseCSVFromClipboard()}>Rcreatwe table vrom arr temp</ListItem>
 
                         <ListItem divider />
 
