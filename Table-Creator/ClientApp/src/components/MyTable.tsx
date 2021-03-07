@@ -6,10 +6,12 @@ import { table } from 'table';
 import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField } from '@material-ui/core';
 import { plainToClass, Type } from 'class-transformer';
 import 'reflect-metadata';
+import cloneDeep from 'lodash/cloneDeep';
 
 let jsonstate = "";
 
 var statestack: TableState[] = [];
+var tablestack: CellDetails[][][] = [];
 
 
 type Props = {
@@ -43,8 +45,8 @@ function escapeHTML(str: string) {
 }
 
 class TablePoint {
-    public row: number;
-    public col: number;
+    public readonly row: number;
+    public readonly col: number;
     constructor(row?: number, col?: number, p?: string) {
         if (p === undefined) {
             if (row !== undefined) {
@@ -159,6 +161,9 @@ class CellDetails {
     }
     public getData(): string {
         return this.data;
+    }
+    public move(dest: TablePoint){
+        this.p = dest;
     }
     public getMergeSize(): number[] {
         if (this.mergechildren === []) return [-1, -1];
@@ -451,57 +456,69 @@ class MyTable extends React.Component<Props, TableState> {
 
     //Add a row to the bottom of the table.
     private addRow() {
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         let row: CellDetails[] = [];
         for (let col = 0; col < this.getColCount(); col++) {
             let cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
             row.push(cell);
         }
         newtable.push(row);
+        this.addTableStateToUndoStack();
         this.setState({ table: newtable });
     }
     //Add a column to the right of the table.
     private addCol() {
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         let colcount = this.getColCount();
         for (let row = 0; row < this.getRowCount(); row++) {
             let cell = new CellDetails(new TablePoint(row, colcount));
             console.log(cell.p.toString());
             newtable[row].push(cell);
         }
+        this.addTableStateToUndoStack();
         this.setState({ table: newtable });
     }
 
-    private moveCell() {
+    //private moveSelectedCells
 
+    //Move a cell
+    private moveCell(sourcepoint: TablePoint, destpoint: TablePoint, sourcetable: CellDetails[][], desttable: CellDetails[][]) : CellDetails[][] {
+        let sourcecell: CellDetails = sourcetable[sourcepoint.row][sourcepoint.col];
+        let destcell: CellDetails = cloneDeep(sourcecell);//DEEPCLONE sourcecell HERE
+        destcell.move(destpoint); //
+        desttable[destpoint.row][destpoint.col] = destcell;
+        desttable[sourcepoint.row][sourcepoint.col] = new CellDetails(sourcepoint);
+        return desttable;
     }
 
     /*
      * Callback functions for interaction with individual cells
      */
     private selectCell(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
         cell.select();
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
     private deselectCell(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
         cell.deselect();
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
     private enableCellEdit(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
         cell.enableEdit();
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
     private disableCellEdit(cell: CellDetails) {
-        let newtable = this.state.table.map((x) => x);
         cell.disableEdit();
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
+    //TODO: FIX UNDO
     private modifyCellData(cell: CellDetails, data: string) {
-        let newtable = this.state.table.map((x) => x);
+        this.addTableStateToUndoStack();
         cell.setData(data);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
@@ -545,22 +562,24 @@ class MyTable extends React.Component<Props, TableState> {
     }
     //Sets the colour of the selected cells to the chosen colour.
     private setCellBackgroundColours() {
+        this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
         selectedcells.forEach(
             (item) => {
                 item.setBackgroundColour(this.chosencolour)
             });
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
     private setCellBorderColours() {
+        this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
         selectedcells.forEach(
             (item) => {
                 item.setBorderColour(this.chosencolour)
             });
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
@@ -586,7 +605,7 @@ class MyTable extends React.Component<Props, TableState> {
             (item) => {
                 item.deselect()
             });
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
@@ -597,7 +616,7 @@ class MyTable extends React.Component<Props, TableState> {
                 cell.select();
             }
         }
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
@@ -611,6 +630,7 @@ class MyTable extends React.Component<Props, TableState> {
     //Also includes the borders of other merged cells in this calculation.
     //Recurses when these extra cells are selected to check for new cells that should be included, otherwise performs the merge.
     private mergeCells() {
+        this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
         if (selectedcells.length <= 1) return;
 
@@ -670,13 +690,14 @@ class MyTable extends React.Component<Props, TableState> {
             let childrenstrings = children.map(x => x.p.toString());
             root.mergeAsRoot(childrenstrings);
 
-            let newtable = this.state.table.map((x) => x);
+            let newtable = cloneDeep(this.state.table);
             this.setState({ table: newtable });
         }
     }
 
     //Splits the selected merged cells.
     private splitCells() {
+        this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
         if (selectedcells.length === 0) return;
         let roots = new Set<string>();
@@ -701,18 +722,19 @@ class MyTable extends React.Component<Props, TableState> {
                     });
                 cell.unMerge();
             });
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
     //Sets CSS horizontal text alignment for the selected cells.
-    private setHorizontalTextAlignment(alignment : string) {
+    private setHorizontalTextAlignment(alignment: string) {
+        this.addTableStateToUndoStack();
         let cells = this.getSelectedCells();
         cells.forEach(
             (cell) => {
                 cell.setTextAlignment(alignment);
             });
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
 
@@ -976,7 +998,7 @@ class MyTable extends React.Component<Props, TableState> {
             (item) => {
                 item.deselect()
             });
-        let newtable = this.state.table.map((x) => x);
+        let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable }, () => this.convertToPNG());
     }
 
@@ -1060,10 +1082,22 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     componentDidUpdate(prevProps: Object, prevState: TableState ){
-        statestack.push(prevState);
+        //statestack.push(prevState);
+    }
+
+    private addTableStateToUndoStack(){
+        let table = cloneDeep(this.state.table);
+        tablestack.push(table);
     }
 
     private undo(){
+        let prevtable = tablestack.pop();
+        if(prevtable !== undefined){
+            this.setState({table: prevtable});
+        }
+    }
+
+    private oldundo(){
         let prevstate = statestack.pop();
         console.log(prevstate);
         if(prevstate !== undefined){
@@ -1183,6 +1217,7 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private setSelectedCellData(data: string){
+        this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
         selectedcells.forEach(
             (cell) =>
