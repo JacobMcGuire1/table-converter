@@ -16,6 +16,8 @@ var redotablestack: CellDetails[][][] = [];
 
 
 type Props = {
+    initialrows: number;
+    initialcols: number;
 }
 
 
@@ -383,9 +385,15 @@ class MyTable extends React.Component<Props, TableState> {
     private chosencolour = "#ffffff";
     private colourpickerref = React.createRef<HTMLInputElement>();
     private svgref: React.RefObject<SVGSVGElement>;
+    private latextextarearef: React.RefObject<HTMLTextAreaElement>;
+    private htmltextarearef: React.RefObject<HTMLTextAreaElement>;
+    private texttextarearef: React.RefObject<HTMLTextAreaElement>;
     constructor(props: Props) {
         super(props);
         this.svgref = React.createRef();
+        this.latextextarearef = React.createRef();
+        this.htmltextarearef = React.createRef();
+        this.texttextarearef = React.createRef();
         this.addRow = this.addRow.bind(this);
         this.addCol = this.addCol.bind(this);
         let rows = 5;
@@ -531,28 +539,28 @@ class MyTable extends React.Component<Props, TableState> {
 
     //Copies the latex to the clipboard.
     private copyLatex(): void {
-        let copyText = document.getElementById("latextextarea");
-        (copyText! as HTMLTextAreaElement).select();
-        (copyText! as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        let copyText = this.latextextarearef.current!;
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
         document.execCommand("copy");
         let sel = document.getSelection();
         sel!.removeAllRanges();
     }
 
     private copyHTML(): void {
-        let copyText = document.getElementById("htmltextarea");
-        (copyText! as HTMLTextAreaElement).select();
-        (copyText! as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        let copyText = this.htmltextarearef.current!;
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
         document.execCommand("copy");
         let sel = document.getSelection();
         sel!.removeAllRanges();
     }
 
     private copyText(): void {
-        let copyText = document.getElementById("texttextarea")!;
+        let copyText = this.texttextarearef.current!;
         copyText.className = "show";
-        (copyText as HTMLTextAreaElement).select();
-        (copyText as HTMLTextAreaElement).setSelectionRange(0, 99999);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
         document.execCommand("copy");
         let sel = document.getSelection();
         sel!.removeAllRanges();
@@ -822,7 +830,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         return (
             <div>
-                <textarea readOnly={true} rows={10} cols={25} className="latex-box" id="latextextarea" value={latex}/>
+                <textarea readOnly={true} rows={10} cols={25} className="latex-box" id="latextextarea" ref={this.latextextarearef} value={latex}/>
             </div>
             
         );
@@ -853,7 +861,7 @@ class MyTable extends React.Component<Props, TableState> {
         return (
             <div>
                 <div dangerouslySetInnerHTML={{ __html: html }} className="html-table-displaybox" />
-                <textarea readOnly={true} rows={10} cols={15} className="latex-box" id="htmltextarea" value={html} />
+                <textarea readOnly={true} rows={10} cols={15} className="latex-box" id="htmltextarea" ref={this.htmltextarearef} value={html} />
             </div>
         );
     }
@@ -873,7 +881,7 @@ class MyTable extends React.Component<Props, TableState> {
         //console.log(texttable);
         return (
             <div>
-                <textarea readOnly={true} rows={10} cols={15} id="texttextarea" className="hide" value={texttable}/>
+                <textarea readOnly={true} rows={10} cols={15} ref={this.latextextarearef} id="texttextarea" className="hide" value={texttable}/>
                 <code id="textcodeblock">
                     {texttable}
                 </code>
@@ -891,7 +899,7 @@ class MyTable extends React.Component<Props, TableState> {
 
     //Initialises the select box when the mouse is clicked down.
     private svgCreateRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) { //Creates rectangle
-        let canvas = document.getElementById("svg");
+        let canvas = this.svgref.current;
         let rect = canvas!.getBoundingClientRect();
         let x = ev.clientX - rect.left
         let y = ev.clientY - rect.top
@@ -913,7 +921,7 @@ class MyTable extends React.Component<Props, TableState> {
     //Updates the coordinates of the box as the mouse moves (while click is held).
     private svgDragRect(ev: React.MouseEvent<SVGSVGElement, MouseEvent>) {
         if (this.state.selecting) {
-            let canvas = document.getElementById("svg");
+            let canvas = this.svgref.current;
             let rect = canvas!.getBoundingClientRect();
             let x = ev.clientX - rect.left
             let y = ev.clientY - rect.top
@@ -939,7 +947,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
     private selectWithClick(coords: [number, number]) {
-        let svg = document.getElementById("svg")!;
+        let svg = this.svgref.current!;
         let rect = svg.getBoundingClientRect();
         coords = [coords[0] + rect.left, coords[1] + rect.top];
         for (let row = 0; row < this.getRowCount(); row++) {
@@ -1005,8 +1013,8 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private convertToPNG() {
-        let svgthing = document.getElementById("svg");
-        let svgData = new XMLSerializer().serializeToString(svgthing!);
+        let svg = this.svgref.current!;
+        let svgData = new XMLSerializer().serializeToString(svg);
 
         let htmlcanvas = document.getElementById("mycanvas")! as HTMLCanvasElement;
 
@@ -1120,8 +1128,6 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private changeTab(e: React.ChangeEvent<{}>, v: any) {
-        //let tabbar = document.getElementById("tabbar")!;
-        //console.log(v);
         this.setState({ tab: (v as number) });
         this.uploadIMG();
     }
@@ -1338,6 +1344,8 @@ class MyTable extends React.Component<Props, TableState> {
                             <Button onClick={() => this.UploadTable()}>Upload</Button>
                         </ListItem>
 
+                        <ListItem button onClick={() => this.parseCSVFromClipboard()}>Import CSV from clipboard</ListItem>
+
                         <ListItem divider />
                         <ListItem divider>
                             <b>Global Controls</b>
@@ -1356,7 +1364,7 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => jsonstate = this.stateToJSON()}>Save state temp</ListItem>
                         <ListItem button onClick={() => this.importJSONState(jsonstate)}>Restore state temp</ListItem>
 
-                        <ListItem button onClick={() => this.parseCSVFromClipboard()}>Rcreatwe table vrom arr temp</ListItem>
+                        
 
                         <ListItem divider />
 
