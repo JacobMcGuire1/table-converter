@@ -378,10 +378,15 @@ class CellDetails {
     private getLengthOfLongestLine(str: string): number{
         return Math.max(...str.split("\n").map(s => s.length));
     }
+    private getMergeSpan(){
+        let size = this.getMergeSize();
+        return {rowspan: size[0] + 1, colspan: size[1] + 1};
+    }
     public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, hlines: boolean) {
+        let span = this.getMergeSpan();
         if (this.isVisible()) {
             return (
-                <td id={this.p.toString()} style={{border: "1px solid", background: this.isSelected() ? "pink" : ""}} onDoubleClick={(e) => enableEditMode(this)}>
+                <td rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px solid", background: this.isSelected() ? "pink" : ""}} onDoubleClick={(e) => enableEditMode(this)}>
                     <div>
                         {
                             this.editing ?
