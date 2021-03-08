@@ -396,7 +396,7 @@ class CellDetails {
         let span = this.getMergeSpan();
         if (this.isVisible()) {
             return (
-                <td rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px " + this.borderstyle + " " + this.bordercolour, background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} onDoubleClick={(e) => enableEditMode(this)}>
+                <td key={this.p.toString()} rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px " + this.borderstyle + " " + this.bordercolour, background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} onDoubleClick={(e) => enableEditMode(this)}>
                     <div>
                         {
                             this.editing ?
@@ -413,7 +413,7 @@ class CellDetails {
 
 class MyTable extends React.Component<Props, TableState> {
     private chosencolour = "#ffffff";
-    private colourpickerref = React.createRef<HTMLInputElement>();
+    private colourpickerref: React.RefObject<HTMLInputElement>;
     private svgref: React.RefObject<SVGSVGElement>;
     private latextextarearef: React.RefObject<HTMLTextAreaElement>;
     private htmltextarearef: React.RefObject<HTMLTextAreaElement>;
@@ -422,6 +422,7 @@ class MyTable extends React.Component<Props, TableState> {
     constructor(props: Props) {
         super(props);
         this.svgref = React.createRef();
+        this.colourpickerref = React.createRef();
         this.latextextarearef = React.createRef();
         this.htmltextarearef = React.createRef();
         this.texttextarearef = React.createRef();
@@ -1164,30 +1165,32 @@ class MyTable extends React.Component<Props, TableState> {
                     
                     <foreignObject x={0} y={0} width="100%" height="100%">
                         <table ref={this.tableref}>
-                            {
-                            this.state.table.map((innerArray, row) => (
-                                <tr>
-                                    {innerArray.map(
-                                        (cell, col) =>
-                                            
-                                                cell.draw(
-                                                    0,
-                                                    0,
-                                                    [],
-                                                    [],
-                                                    0,
-                                                    0,
-                                                    (cell: CellDetails, data: string) => this.modifyCellData(cell, data),
-                                                    (cell: CellDetails) => this.selectCell(cell),
-                                                    (cell: CellDetails) => this.deselectCell(cell),
-                                                    (cell: CellDetails) => this.enableCellEdit(cell),
-                                                    (cell: CellDetails) => this.disableCellEdit(cell),
-                                                )
-                                            
-                                            
-                                    )}
-                                </tr>
-                            ))}
+                            <tbody>
+                                {
+                                this.state.table.map((innerArray, row) => (
+                                    <tr key={row}>
+                                        {innerArray.map(
+                                            (cell, col) =>
+                                                
+                                                    cell.draw(
+                                                        0,
+                                                        0,
+                                                        [],
+                                                        [],
+                                                        0,
+                                                        0,
+                                                        (cell: CellDetails, data: string) => this.modifyCellData(cell, data),
+                                                        (cell: CellDetails) => this.selectCell(cell),
+                                                        (cell: CellDetails) => this.deselectCell(cell),
+                                                        (cell: CellDetails) => this.enableCellEdit(cell),
+                                                        (cell: CellDetails) => this.disableCellEdit(cell),
+                                                    )
+                                                
+                                                
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
                         </table>
                     </foreignObject>
                     
@@ -1203,7 +1206,8 @@ class MyTable extends React.Component<Props, TableState> {
     
 
     componentDidMount() {
-        this.colourpickerref.current!.value = this.chosencolour;
+        let picker = this.colourpickerref.current;
+        if (picker) picker.value = this.chosencolour;
     }
 
     componentDidUpdate(prevProps: Object, prevState: TableState ){
@@ -1355,6 +1359,9 @@ class MyTable extends React.Component<Props, TableState> {
         let csvarray = this.parseCSV(await this.getStringFromClipboard());
         this.tableFromArray(csvarray);
     }
+    public testcsv(csv: string){
+        this.tableFromArray(this.parseCSV(csv));
+    }
 
     private parseCSV(csv: string): string[][]{
         let results = Papa.parse(csv, {header: false});
@@ -1500,7 +1507,7 @@ class MyTable extends React.Component<Props, TableState> {
                             <ListItemText primary="Clear Data"/>
                         </ListItem>
                         
-                        <ListItem button onClick={() => this.mergeCells()}>
+                        <ListItem id="mergebutton" button onClick={() => this.mergeCells()}>
                             <ListItemText primary="Merge" secondary="Combine the selected cells into one"/>
                         </ListItem>
                         <ListItem button onClick={() => this.splitCells()}>
@@ -1529,16 +1536,16 @@ class MyTable extends React.Component<Props, TableState> {
 
                         <ListItem>
                             <ToggleButtonGroup>
-                                <ToggleButton size="small" selected={this.state.bordermodify[0]}  onClick={(e) => this.selectBorderToModify(0)}>
+                                <ToggleButton value="top" size="small" selected={this.state.bordermodify[0]}  onClick={(e) => this.selectBorderToModify(0)}>
                                     Top
                                 </ToggleButton>
-                                <ToggleButton size="small" selected={this.state.bordermodify[1]}  onClick={(e) => this.selectBorderToModify(1)}>
+                                <ToggleButton value="right" size="small" selected={this.state.bordermodify[1]}  onClick={(e) => this.selectBorderToModify(1)}>
                                     Right
                                 </ToggleButton>
-                                <ToggleButton size="small" selected={this.state.bordermodify[2]}  onClick={(e) => this.selectBorderToModify(2)}>
+                                <ToggleButton value="bottom" size="small" selected={this.state.bordermodify[2]}  onClick={(e) => this.selectBorderToModify(2)}>
                                     Bottom
                                 </ToggleButton>
-                                <ToggleButton size="small" selected={this.state.bordermodify[3]}  onClick={(e) => this.selectBorderToModify(3)}>
+                                <ToggleButton value="left" size="small" selected={this.state.bordermodify[3]}  onClick={(e) => this.selectBorderToModify(3)}>
                                     Left
                                 </ToggleButton>
                             </ToggleButtonGroup>
