@@ -30,10 +30,6 @@ type Props = {
 
 type TableState = {
     table: CellDetails[][];
-    mincellheight: number;
-    mincellwidth: number;
-    dividerpixels: number;
-    horizontallines: boolean;
     selecting: boolean;
     startselectpoint: [number, number];
     endselectpoint: [number, number];
@@ -391,14 +387,14 @@ class CellDetails {
             let bcgnd = Color(a);
             return pink.mix(bcgnd).hex().toString();
         }
-        return pink;
+        return pink.toString();
         //let new = normal(hexToRgb(pink), hexToRgb(bcgnd));
     }
-    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, hlines: boolean) {
+    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function) {
         let span = this.getMergeSpan();
         if (this.isVisible()) {
             return (
-                <td rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px solid", background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} onDoubleClick={(e) => enableEditMode(this)}>
+                <td rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px " + this.borderstyle + " " + this.bordercolour, background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} onDoubleClick={(e) => enableEditMode(this)}>
                     <div>
                         {
                             this.editing ?
@@ -430,10 +426,6 @@ class MyTable extends React.Component<Props, TableState> {
         this.tableref = React.createRef();
         this.state = { 
             table: [], 
-            mincellheight: 40, 
-            mincellwidth: 50, 
-            dividerpixels: 0, 
-            horizontallines: true, 
             selecting: false, 
             startselectpoint: [0, 0], 
             endselectpoint: [0, 0], 
@@ -481,7 +473,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
         return colarray;
     }
-    private getColWidth(col: number): number { //Doesn't account for merged cells.
+    /*private getColWidth(col: number): number { //Doesn't account for merged cells.
         let colarray = this.getCol(col);
         let widths = colarray.map(x => x.width);
         let largestwidth = widths.reduce(function (a, b) {
@@ -498,13 +490,28 @@ class MyTable extends React.Component<Props, TableState> {
         });
         if (this.state.mincellheight > largestheight) return this.state.mincellheight;
         return largestheight;
-    }
+    }*/
     //Returns the selected cells as a list.
     private getSelectedCells() {
         let selectedcells = [];
         for (let row = 0; row < this.getRowCount(); row++) {
             for (let col = 0; col < this.getColCount(); col++) {
                 let cell = this.state.table[row][col];
+                if (cell.isSelected()) {
+                    selectedcells.push(cell);
+                }
+            }
+        }
+        return selectedcells;
+    }
+
+    private getSelectedCellsFromTable(table: CellDetails[][]) {
+        let rows = table.length;
+        let cols = table[0].length;
+        let selectedcells = [];
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                let cell = table[row][col];
                 if (cell.isSelected()) {
                     selectedcells.push(cell);
                 }
@@ -632,12 +639,13 @@ class MyTable extends React.Component<Props, TableState> {
 
     private setCellBorderColours() {
         this.addTableStateToUndoStack();
-        let selectedcells = this.getSelectedCells();
+        let newtable = cloneDeep(this.state.table);
+        let selectedcells = this.getSelectedCellsFromTable(newtable);
         selectedcells.forEach(
             (item) => {
                 item.setBorderColour(this.chosencolour)
             });
-        let newtable = cloneDeep(this.state.table);
+        
         this.setState({ table: newtable });
     }
 
@@ -649,12 +657,15 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private chooseBorderStyle(e: React.ChangeEvent<HTMLSelectElement>) {
+        this.addTableStateToUndoStack();
         console.log(this.state.bordermodify);
-        let selectedcells = this.getSelectedCells();
+        let newtable = cloneDeep(this.state.table);
+        let selectedcells = this.getSelectedCellsFromTable(newtable);
         selectedcells.forEach(
             (item) => {
                 item.setBorderStyle(e.target.value);
         })
+        this.setState({ table: newtable });
     }
 
     private deselectAllCells() {
@@ -856,10 +867,10 @@ class MyTable extends React.Component<Props, TableState> {
                 } 
             }
 
-            if (this.state.horizontallines) rowlatex = rowlatex + l;
+            rowlatex = rowlatex + l;
             latextable.push(rowlatex);
         }
-        if (this.state.horizontallines && latextable.length > 0) latextable[0] = " \\hline" + "\n" + latextable[0];
+        if (latextable.length > 0) latextable[0] = " \\hline" + "\n" + latextable[0];
 
         //let bs = "\\";
         //let cu1 = "{";
@@ -1091,7 +1102,7 @@ class MyTable extends React.Component<Props, TableState> {
      * Draws the current representation of the table.
      */
     private drawTable() {
-        let rowheights: number[] = [];
+        /*let rowheights: number[] = [];
         let colwidths: number[] = [];
         for (let row = 0; row < this.getRowCount(); row++) {
             rowheights.push(this.getRowHeight(row));
@@ -1100,7 +1111,7 @@ class MyTable extends React.Component<Props, TableState> {
             colwidths.push(this.getColWidth(col));
         }
         let tablewidth = colwidths.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getColCount());
-        let tableheight = rowheights.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getRowCount());
+        let tableheight = rowheights.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getRowCount());*/
 
  
         //document.appendChild(table);
@@ -1162,7 +1173,6 @@ class MyTable extends React.Component<Props, TableState> {
                                                     (cell: CellDetails) => this.deselectCell(cell),
                                                     (cell: CellDetails) => this.enableCellEdit(cell),
                                                     (cell: CellDetails) => this.disableCellEdit(cell),
-                                                    this.state.horizontallines
                                                 )
                                             
                                             
@@ -1174,7 +1184,7 @@ class MyTable extends React.Component<Props, TableState> {
                     
                     {this.drawSelectRect()}
                 </svg>
-                <canvas id="mycanvas" className="hide" width={tablewidth} height={tableheight} />
+                <canvas id="mycanvas" className="hide" width={500} height={500} />
                 <br />
                 
             </div>
@@ -1451,7 +1461,6 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.addCol()}>Add Column</ListItem>
                         <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
                         <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
-                        <ListItem button onClick={() => this.setState({ horizontallines: !this.state.horizontallines })}>(Temp)</ListItem>
 
                         <ListItem button onClick={() => this.undo()}>Undo</ListItem>
                         <ListItem button onClick={() => this.redo()}>Redo</ListItem>
