@@ -9,7 +9,7 @@
     /*word-break: break-all;*/
     display: grid;
     grid-template-columns: 1fr 1fr;
-    margin: 0px 0px 0px 350px;
+    margin: 0px 0px 0px 450px;
     height: 900px;
 }
 .table-buttons-div {

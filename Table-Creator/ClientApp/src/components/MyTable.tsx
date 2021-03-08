@@ -302,6 +302,18 @@ class CellDetails {
 
         return html;
     }
+    public getHTMLStyle(){
+        let colour = this.getHexBackgroundColour();
+        let html = "";
+        if (colour !== "") {
+            html += "background-color:" + colour + ";";
+        }
+        html += "border: 1px solid " + this.bordercolour + ";";
+        html += "padding: 5px;";
+        html += "text-align: " + this.csstextalign + ";";
+        html += "border-style:" + this.borderstyle + ";";
+        return 
+    }
     private getTextHeight(): number {
         let lines = this.data.split("\n");
         return lines.length * 25;
@@ -358,29 +370,27 @@ class CellDetails {
     public setTextAlignment(alignment : string) {
         this.csstextalign = alignment;
     }
+    private moveCursorToEnd(e: React.FocusEvent<HTMLTextAreaElement>) {
+        let value = e.target.value;
+        e.target.value = "";
+        e.target.value = value;
+    }
+    private getLengthOfLongestLine(str: string): number{
+        return Math.max(...str.split("\n").map(s => s.length));
+    }
     public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, hlines: boolean) {
         if (this.isVisible()) {
             return (
-                <SVGCell
-                    key={this.p.toString()}
-                    cell={this}
-                    xpixel={xpixel}//{(this.state.colwidths.slice(0, y)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (y)) /*xpixel={y * (this.state.mincellwidth + 10) /*Need to make these 2 count the heights/widths.*/}
-                    ypixel={ypixel}//{ x * (this.state.mincellheight + this.state.dividerpixels) }
-                    width={this.calculateWidth(colwidths, horizontaldividersize)}
-                    height={this.calculateHeight(rowheights, verticaldividersize)}
-                    changeData={changeData}//{(p: TablePoint, data: string) => this.modifyCellData(p, data)}
-                    selectcell={selectCell}//{(p: TablePoint) => this.selectCell(p)}
-                    deselectcell={deSelectCell}// {(p: TablePoint) => this.deselectCell(p)}
-                    enableedit={enableEditMode}
-                    disableedit={disableEditMode}
-                    selected={this.selected}
-                    editing={this.editing}
-                    hlines={hlines}
-                    backgroundcolour={this.backgroundcolour}
-                    bordercolour={this.bordercolour}
-                    borderstyle={this.borderstyle}
-                    paragraphcss={this.getparagraphcss()}
-                />
+                <td id={this.p.toString()} style={{border: "1px solid", background: this.isSelected() ? "pink" : ""}} onDoubleClick={(e) => enableEditMode(this)}>
+                    <div>
+                        {
+                            this.editing ?
+                            <textarea className="cell-input" value={this.getData()} rows={ this.getData().split("\n").length + 1 } cols={ this.getLengthOfLongestLine(this.getData()) + 4 } tabIndex={0} onChange={(e) => changeData(this, e.target.value)} onBlur={(e) => disableEditMode(this)} autoFocus={true} onFocus={(e) => this.moveCursorToEnd(e)}/>
+                            :
+                            <p className="celltext" style={{textAlign: this.csstextalign as any}}>{this.getData()}</p>
+                        }
+                    </div>
+                </td>
             );
         }
     }
@@ -393,12 +403,14 @@ class MyTable extends React.Component<Props, TableState> {
     private latextextarearef: React.RefObject<HTMLTextAreaElement>;
     private htmltextarearef: React.RefObject<HTMLTextAreaElement>;
     private texttextarearef: React.RefObject<HTMLTextAreaElement>;
+    private tableref: React.RefObject<HTMLTableElement>;
     constructor(props: Props) {
         super(props);
         this.svgref = React.createRef();
         this.latextextarearef = React.createRef();
         this.htmltextarearef = React.createRef();
         this.texttextarearef = React.createRef();
+        this.tableref = React.createRef();
         this.state = { 
             table: [], 
             mincellheight: 40, 
@@ -1073,10 +1085,27 @@ class MyTable extends React.Component<Props, TableState> {
         let tablewidth = colwidths.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getColCount());
         let tableheight = rowheights.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getRowCount());
 
+ 
+        //document.appendChild(table);
+        //React.createElement(table);
+       /* let container = <div style={{display: "inline-block", position: "absolute", visibility: "hidden", zIndex: -1}}/>;
+        //const clonedNode = clonenode;
+        //const content = enhanceMeasurableNode(clonedNode);
+
+        container.appendChild(content);
+        (container as HTMLElement).appendChild(table);
+
+        document.body.appendChild(container);
+
+        const height = container.clientHeight;
+        const width = container.clientWidth;
+
+        container.parentNode.removeChild(container);*/
+
         return (
             <div className="maintablediv" onClick={(e) => this.bigClick(e)}>
-                <svg ref={this.svgref} width={tablewidth} height={tableheight} id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
-                    {this.state.table.map((innerArray, row) => (
+                <svg ref={this.svgref} width="100%" height="100%" id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
+                    {/*this.state.table.map((innerArray, row) => (
                         innerArray.map(
                             (cell, col) =>
                                 cell.draw(
@@ -1094,7 +1123,38 @@ class MyTable extends React.Component<Props, TableState> {
                                     this.state.horizontallines
                                 )
                         )
-                    ))}
+                                ))*/}
+                    
+                    <foreignObject x={0} y={0} width="100%" height="100%">
+                        <table ref={this.tableref}>
+                            {
+                            this.state.table.map((innerArray, row) => (
+                                <tr>
+                                    {innerArray.map(
+                                        (cell, col) =>
+                                            
+                                                cell.draw(
+                                                    0,
+                                                    0,
+                                                    [],
+                                                    [],
+                                                    0,
+                                                    0,
+                                                    (cell: CellDetails, data: string) => this.modifyCellData(cell, data),
+                                                    (cell: CellDetails) => this.selectCell(cell),
+                                                    (cell: CellDetails) => this.deselectCell(cell),
+                                                    (cell: CellDetails) => this.enableCellEdit(cell),
+                                                    (cell: CellDetails) => this.disableCellEdit(cell),
+                                                    this.state.horizontallines
+                                                )
+                                            
+                                            
+                                    )}
+                                </tr>
+                            ))}
+                        </table>
+                    </foreignObject>
+                    
                     {this.drawSelectRect()}
                 </svg>
                 <canvas id="mycanvas" className="hide" width={tablewidth} height={tableheight} />
@@ -1141,7 +1201,7 @@ class MyTable extends React.Component<Props, TableState> {
 
 
     private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        if (this.svgref.current !== null && !this.svgref.current.contains(e.target as Node)){
+        if (this.tableref.current !== null && !this.tableref.current.contains(e.target as Node)){
             this.deselectAllCells();
         }
     }
@@ -1333,7 +1393,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
         this.setState(newstate);
     }
-//
+
 
     public render() {
         return (
@@ -1487,8 +1547,8 @@ interface SVGCellProps {
     cell: CellDetails
     xpixel: number
     ypixel: number
-    width: number
-    height: number
+    width: string
+    height: string
     changeData: Function
     selectcell: Function
     deselectcell: Function
@@ -1567,7 +1627,7 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     private getSelectedStyling() {
         if (this.props.selected) {
             return (
-                <rect x={this.props.xpixel + 2} y={this.props.ypixel + 2} width={this.props.width - 4} height={this.props.height - 4} fill="none" stroke="red" strokeWidth={2} />
+                <rect x={2} y={2} width="calc(100% - 2px)" height="calc(100% - 2px)" fill="none" stroke="red" strokeWidth={2} />
             )
         }
     }
@@ -1583,13 +1643,37 @@ class SVGCell extends React.Component<SVGCellProps, {}> {
     }
     componentDidUpdate() {
     }
+    private newgettext(){
+        
+    }
     public render() {
+        /*return (
+            <div>
+                
+                
+                <svg>
+                    
+                    <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={this.props.cell.p.toString()} className="ACell">
+                        <rect x={0} y={0} width="100%" height="100%" fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 1 : 0} strokeDasharray={this.getBorderStyle()}/>
+                        {this.getSelectedStyling()}
+                    </g>
+                    <foreignObject x={0} y={0} width="100%" height="100%">
+                        {this.newgettext()}
+                        
+                    </foreignObject>
+                </svg>
+                
+            </div>
+            
+        );*/
         return (
-            <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={this.props.cell.p.toString()} className="ACell">
-                <rect x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height} fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 1 : 0} strokeDasharray={this.getBorderStyle()}/>
-                {this.getSelectedStyling()}
-                {this.getText()}
-            </g>
-        );
+            <td id={this.props.cell.p.toString()} style={{border: "1px solid", background: this.props.selected ? "pink" : ""}}>
+                <div>
+                    <p className="celltext">
+                        {this.props.cell.getData()}
+                    </p>
+                </div>
+            </td>
+        )
     }
 }
