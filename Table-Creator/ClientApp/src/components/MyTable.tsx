@@ -4,6 +4,8 @@ import * as React from 'react';
 import './MyTable.css';
 import { table } from 'table';
 import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField } from '@material-ui/core';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
+import ToggleButton from '@material-ui/lab/ToggleButton';
 import { plainToClass, Type } from 'class-transformer';
 import 'reflect-metadata';
 import cloneDeep from 'lodash/cloneDeep';
@@ -936,7 +938,14 @@ class MyTable extends React.Component<Props, TableState> {
                         cell.getData()
                 )
         );
-        let texttable = table(textdata);
+        let texttable = "";
+        try{
+            texttable = table(textdata);
+        }catch{
+            texttable = "Couldn't create text table.";
+            console.log(texttable);
+        }
+        
         //console.log(texttable);
         return (
             <div>
@@ -1204,6 +1213,7 @@ class MyTable extends React.Component<Props, TableState> {
     private addTableStateToUndoStack(){
         redotablestack = [];
         let table = cloneDeep(this.state.table);
+        if (tablestack.length > 10) tablestack.shift();
         tablestack.push(table);
     }
 
@@ -1211,6 +1221,7 @@ class MyTable extends React.Component<Props, TableState> {
         let prevtable = tablestack.pop();
         if(prevtable !== undefined){
             let curtable = cloneDeep(this.state.table);
+            if (redotablestack.length > 11) redotablestack.shift();
             redotablestack.push(curtable);
             this.setState({table: prevtable}, () => this.deselectAllCells());
         }
@@ -1220,6 +1231,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = redotablestack.pop();
         if(newtable !== undefined){
             let table = cloneDeep(this.state.table);
+            if (tablestack.length > 10) tablestack.shift();
             tablestack.push(table);
             this.setState({table: newtable}, () => this.deselectAllCells());
         }
@@ -1510,6 +1522,28 @@ class MyTable extends React.Component<Props, TableState> {
                             <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
                         </ListItem>
+
+                        <ListItem>
+                            <ListItemText primary="Choose which borders to modify"/>
+                        </ListItem>
+
+                        <ListItem>
+                            <ToggleButtonGroup>
+                                <ToggleButton size="small" selected={this.state.bordermodify[0]}  onClick={(e) => this.selectBorderToModify(0)}>
+                                    Top
+                                </ToggleButton>
+                                <ToggleButton size="small" selected={this.state.bordermodify[1]}  onClick={(e) => this.selectBorderToModify(1)}>
+                                    Right
+                                </ToggleButton>
+                                <ToggleButton size="small" selected={this.state.bordermodify[2]}  onClick={(e) => this.selectBorderToModify(2)}>
+                                    Bottom
+                                </ToggleButton>
+                                <ToggleButton size="small" selected={this.state.bordermodify[3]}  onClick={(e) => this.selectBorderToModify(3)}>
+                                    Left
+                                </ToggleButton>
+                            </ToggleButtonGroup>
+                        </ListItem>
+
                         <ListItem>
                             <ListItemText primary="Border Style:" />
                             <select name="chooseborderstyle" onChange={(e) => this.chooseBorderStyle(e)}>
