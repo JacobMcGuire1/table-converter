@@ -85,6 +85,26 @@ test("More Complicated Merge", () => {
    expect(table.state.table[1][3].isVisible()).toBe(false);
 });
 
+test("Less Complicated Merge", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let mergebutton = wrapper.find('#mergebutton');
+
+   table.state.table[1][1].select();
+   table.state.table[1][2].select();
+   mergebutton.simulate("click");
+
+   table.state.table[1][1].select();
+   table.state.table[2][2].select();
+   mergebutton.simulate("click");
+
+   expect(table.state.table[1][1].isVisible()).toBe(true);
+   expect(table.state.table[1][2].isVisible()).toBe(false);
+   expect(table.state.table[2][1].isVisible()).toBe(false);
+   expect(table.state.table[1][2].isVisible()).toBe(false);
+});
+
 
 let mytable = new MyTable(
    {

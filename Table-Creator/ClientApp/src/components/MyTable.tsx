@@ -737,7 +737,21 @@ class MyTable extends React.Component<Props, TableState> {
                 }
                 //The following code ensures that any other contained merges are incorporated into this merge.
                 if (!cell.isSelected()) recurse = true;
+
                 cell.select();
+
+                //Select the mergeroot
+                if (cell.getMergeRoot() !== ""){
+                    let mergeroot = new TablePoint(undefined, undefined, cell.getMergeRoot());
+                    let mergerootcell = this.state.table[mergeroot.row][mergeroot.col];
+                    if (!mergerootcell.isSelected()){
+                        recurse = true;
+                        mergerootcell.select();
+                    }
+                }
+                
+
+                //Select the merge children
                 let cellchildren = cell.getMergeChildren();
                 cellchildren.forEach(
                     (item2) => {
