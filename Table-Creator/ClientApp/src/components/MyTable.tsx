@@ -8,6 +8,7 @@ import { plainToClass, Type } from 'class-transformer';
 import 'reflect-metadata';
 import cloneDeep from 'lodash/cloneDeep';
 import Papa from 'papaparse';
+import Color from 'color';
 
 let jsonstate = "";
 
@@ -25,6 +26,7 @@ type Props = {
     initialcols: 5
 };
 */
+
 
 type TableState = {
     table: CellDetails[][];
@@ -382,11 +384,21 @@ class CellDetails {
         let size = this.getMergeSize();
         return {rowspan: size[0] + 1, colspan: size[1] + 1};
     }
+    private combineColours(){
+        let a = this.getHexBackgroundColour();
+        let pink = Color("#FFC0CB");
+        if (a !== ""){
+            let bcgnd = Color(a);
+            return pink.mix(bcgnd).hex().toString();
+        }
+        return pink;
+        //let new = normal(hexToRgb(pink), hexToRgb(bcgnd));
+    }
     public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, hlines: boolean) {
         let span = this.getMergeSpan();
         if (this.isVisible()) {
             return (
-                <td rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px solid", background: this.isSelected() ? "pink" : ""}} onDoubleClick={(e) => enableEditMode(this)}>
+                <td rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px solid", background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} onDoubleClick={(e) => enableEditMode(this)}>
                     <div>
                         {
                             this.editing ?
