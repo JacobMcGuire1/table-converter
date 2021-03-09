@@ -650,7 +650,8 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     private copyText(): void {
-        let copyText = this.texttextarearef.current!;
+        //let copyText = this.texttextarearef.current!;
+        let copyText = document.getElementById("texttextarea")! as HTMLTextAreaElement;
         copyText.className = "show";
         copyText.select();
         copyText.setSelectionRange(0, 99999);
