@@ -176,4 +176,54 @@ test("Move Cell", () => {
    expect(table.state.table[0][0].getData()).toBe("");
 });
 
+test("Move Cell out of table", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let csv = "CellA,CellB\nCellC,CellD"
+   table.testcsv(csv);
+   expect(table.state.table[0][0].getData()).toBe("CellA");
+
+
+   //logic goes here
+   //Move cell 0 0 to  1 0
+   table.state.table[0][0].select();
+   let button = wrapper.find('#movecellsupbutton');
+   button.simulate("click");
+
+   let cell = wrapper.find('td[id="0 0"]');
+   expect(cell.contains("CellA")).toBeFalsy();
+   expect(table.state.table[0][0].getData()).toBe("");
+});
+
+test("Delete Selected Row", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let csv = "CellA,CellB\nCellC,CellD"
+   table.testcsv(csv);
+   expect(table.state.table[0][0].getData()).toBe("CellA");
+
+   table.state.table[0][0].select();
+   let button = wrapper.find('#deleterowbutton');
+   button.simulate("click");
+   expect(table.state.table.length).toBe(1);
+   expect(table.state.table[0][0].getData()).toBe("CellC");
+});
+
+test("Delete Selected Col", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let csv = "CellA,CellB\nCellC,CellD"
+   table.testcsv(csv);
+   expect(table.state.table[0][0].getData()).toBe("CellA");
+
+   table.state.table[0][0].select();
+   let button = wrapper.find('#deletecolbutton');
+   button.simulate("click");
+   expect(table.state.table[0].length).toBe(1);
+   expect(table.state.table[0][0].getData()).toBe("CellB");
+});
+
 

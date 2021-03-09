@@ -1502,6 +1502,65 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({table: newtable});
     }
 
+    //Needs to understand merged cells?
+    //Maybe make method to fix merges after table changes.
+    private deleteRowHandler(){
+        this.addTableStateToUndoStack();
+        let newtable = cloneDeep(this.state.table);
+        let selectedcells = this.getSelectedCellsFromTable(newtable);
+
+        let rows = Array.from(new Set(selectedcells.map(cell => cell.p.row))).sort();
+
+        for (let i = rows.length - 1; i >= 0; i--){
+            let row = rows[i];
+            this.deleteRow(row, newtable);
+        }
+
+        this.setState({table: newtable});
+    }
+
+    private deleteRow(row: number, table: CellDetails[][]){
+        //Move each cell below up.
+        for (let i = row + 1; i < table.length; i++){
+            let tablerow = table[i];
+            tablerow.forEach(
+                (cell) => {
+                    cell.move(Direction.Up);
+                }
+            );
+        }
+        if (table.length > 1){
+            table.splice(row, 1);
+        }
+        return table;
+    }
+
+    private deleteColHandler(){
+        this.addTableStateToUndoStack();
+        let newtable = cloneDeep(this.state.table);
+        let selectedcells = this.getSelectedCellsFromTable(newtable);
+
+        let cols = Array.from(new Set(selectedcells.map(cell => cell.p.col))).sort();
+
+        for (let i = cols.length - 1; i >= 0; i--){
+            let col = cols[i];
+            this.deleteCol(col, newtable);
+        }
+
+        this.setState({table: newtable});
+    }
+
+    private deleteCol(col: number, table: CellDetails[][]){
+        table.forEach(
+            (row) => {
+                for (let i = col + 1; i < row.length; i++){
+                    row[i].move(Direction.Left);
+                }
+                if (row.length > 1) row.splice(col, 1);
+            });
+        return table;
+    }
+
 
     public render() {
         return (
@@ -1557,6 +1616,9 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem divider>
                             <b>Selected Cell Controls</b>
                         </ListItem>
+
+                        <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
+                        <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
 
                         <ListItem >
                             <form>
