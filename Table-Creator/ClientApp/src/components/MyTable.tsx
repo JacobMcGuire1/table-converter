@@ -17,10 +17,18 @@ let jsonstate = "";
 var tablestack: CellDetails[][][] = [];
 var redotablestack: CellDetails[][][] = [];
 
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+  }
+
 
 type Props = {
     initialrows: number;
     initialcols: number;
+    prefillcells: boolean;
 }
 
 /*MyTable.defaultProps = {
@@ -95,10 +103,19 @@ class CellDetails {
     public csstextalign: string = "center";
     public borders: [boolean, boolean, boolean, boolean] = [true, true, true, true]; //T R B L
 
-    constructor(p: TablePoint) {
+    constructor(p: TablePoint, data: string | undefined) {
         this.p = p;
-        if (p !== undefined) this.setData(p.toString());
-        
+        if (data === undefined){
+            this.setData(p.toString());
+        }else{
+            this.setData(data);
+        }
+
+        /*if (data !== undefined){
+            this.setData(data);
+        }else{
+            if (p !== undefined) this.setData(p.toString());
+        }*/
     }
     public isSelected() {
         return this.selected;
@@ -170,8 +187,25 @@ class CellDetails {
     public getData(): string {
         return this.data;
     }
-    public move(dest: TablePoint){
-        this.p = dest;
+    //Needs to modify merge list too.
+    //What if merge root leaves table?
+    //What if moved on top of a merge?
+    public move(dir: Direction): TablePoint[]{
+        switch(dir){
+            case Direction.Up:
+                this.p = new TablePoint(this.p.row - 1, this.p.col, undefined);
+                break;
+            case Direction.Down:
+                this.p = new TablePoint(this.p.row + 1, this.p.col, undefined);
+                break;
+            case Direction.Left:
+                this.p = new TablePoint(this.p.row, this.p.col - 1, undefined);
+                break;
+            case Direction.Right:
+                this.p = new TablePoint(this.p.row, this.p.col + 1, undefined);
+                break;
+        }
+        return [];
     }
     public getMergeSize(): number[] {
         if (this.mergechildren === []) return [-1, -1];
@@ -442,7 +476,8 @@ class MyTable extends React.Component<Props, TableState> {
 
     static defaultProps = {
         initialrows: 5,
-        initialcols: 5
+        initialcols: 5,
+        prefillcells: true,
     };
 
     //Creates and populates the initial table.
@@ -450,7 +485,7 @@ class MyTable extends React.Component<Props, TableState> {
         for (let row = 0; row < this.props.initialrows; row++) {
             let rowarray: CellDetails[] = [];
             for (let col = 0; col < this.props.initialcols; col++) {
-                let cell = new CellDetails(new TablePoint(row, col));
+                let cell = new CellDetails(new TablePoint(row, col), this.props.prefillcells ? undefined : "a");
                 rowarray.push(cell);
             }
             this.state.table.push(rowarray);
@@ -528,7 +563,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         let row: CellDetails[] = [];
         for (let col = 0; col < this.getColCount(); col++) {
-            let cell = new CellDetails(new TablePoint(this.getRowCount(), col)); //May need to add 1 to getrowcount()
+            let cell = new CellDetails(new TablePoint(this.getRowCount(), col), this.props.prefillcells ? undefined : ""); //May need to add 1 to getrowcount()
             row.push(cell);
         }
         newtable.push(row);
@@ -540,7 +575,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         let colcount = this.getColCount();
         for (let row = 0; row < this.getRowCount(); row++) {
-            let cell = new CellDetails(new TablePoint(row, colcount));
+            let cell = new CellDetails(new TablePoint(row, colcount), this.props.prefillcells ? undefined : "");
             newtable[row].push(cell);
         }
         this.addTableStateToUndoStack();
@@ -550,14 +585,14 @@ class MyTable extends React.Component<Props, TableState> {
     //private moveSelectedCells
 
     //Move a cell
-    private moveCell(sourcepoint: TablePoint, destpoint: TablePoint, sourcetable: CellDetails[][], desttable: CellDetails[][]) : CellDetails[][] {
+    /*private moveCell(sourcepoint: TablePoint, destpoint: TablePoint, sourcetable: CellDetails[][], desttable: CellDetails[][]) : CellDetails[][] {
         let sourcecell: CellDetails = sourcetable[sourcepoint.row][sourcepoint.col];
         let destcell: CellDetails = cloneDeep(sourcecell);//DEEPCLONE sourcecell HERE
         destcell.move(destpoint); //
         desttable[destpoint.row][destpoint.col] = destcell;
         desttable[sourcepoint.row][sourcepoint.col] = new CellDetails(sourcepoint);
         return desttable;
-    }
+    }*/
 
     /*
      * Callback functions for interaction with individual cells
@@ -1352,7 +1387,7 @@ class MyTable extends React.Component<Props, TableState> {
             for (let row = 0; row < rows; row++) {
                 let rowarray: CellDetails[] = [];
                 for (let col = 0; col < cols; col++) {
-                    let cell = new CellDetails(new TablePoint(row, col));
+                    let cell = new CellDetails(new TablePoint(row, col), this.props.prefillcells ? undefined : "");
                     rowarray.push(cell);
                 }
                 newtable.push(rowarray);
@@ -1412,8 +1447,7 @@ class MyTable extends React.Component<Props, TableState> {
             for (let row = 0; row < rows; row++) {
                 let rowarray: CellDetails[] = [];
                 for (let col = 0; col < cols; col++) {
-                    let cell = new CellDetails(new TablePoint(row, col));
-                    cell.setData(array[row][col]);
+                    let cell = new CellDetails(new TablePoint(row, col), array[row][col]);
                     rowarray.push(cell);
                 }
                 newtable.push(rowarray);
@@ -1454,6 +1488,20 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState(newstate);
     }
 
+    private moveSelectedCells(dir: Direction){
+        this.addTableStateToUndoStack();
+        let newtable = cloneDeep(this.state.table);
+        let selectedcells = this.getSelectedCellsFromTable(newtable);
+
+        for (let i = 0; i < selectedcells.length; i++) {
+            let cell = selectedcells[i];
+            newtable[cell.p.row][cell.p.col] = new CellDetails(new TablePoint(cell.p.row, cell.p.col, undefined), ""); //replace old location with blank.
+            cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
+            newtable[cell.p.row][cell.p.col] = cell;
+        }
+        this.setState({table: newtable});
+    }
+
 
     public render() {
         return (
@@ -1490,8 +1538,8 @@ class MyTable extends React.Component<Props, TableState> {
                             <b>Global Controls</b>
                         </ListItem>
                         
-                        <ListItem button onClick={() => this.addRow()}>Add Row</ListItem>
-                        <ListItem button onClick={() => this.addCol()}>Add Column</ListItem>
+                        <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
+                        <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
                         <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
                         <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
 
@@ -1537,6 +1585,15 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.setCellBorderColours()}>
                             <ListItemText primary="Set cell borders to this colour" />
                         </ListItem>
+
+                        <ListItem>
+                            <ListItemText primary="Move "/>
+                            <Button id="movecellsupbutton" onClick={() => this.moveSelectedCells(Direction.Up)}>Up</Button>
+                            <Button id="movecellsdownbutton" onClick={() => this.moveSelectedCells(Direction.Down)}>Down</Button>
+                            <Button id="movecellsleftbutton" onClick={() => this.moveSelectedCells(Direction.Left)}>Left</Button>
+                            <Button id="movecellsrightbutton" onClick={() => this.moveSelectedCells(Direction.Right)}>Right</Button>
+                        </ListItem>
+
                         <ListItem>
                             <ListItemText primary="Text Alignment:"/>
                             <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
@@ -1573,6 +1630,8 @@ class MyTable extends React.Component<Props, TableState> {
                                 <option value="dashed">Dashed</option>
                             </select>
                         </ListItem>
+
+
                         
                     </List>
                 </Drawer>
