@@ -1562,6 +1562,14 @@ class MyTable extends React.Component<Props, TableState> {
         return table;
     }
 
+    private setTableFormValues(rows: number, cols: number){
+        if (rows > 30) rows = 30;
+        if (rows < 1) rows = 1;
+        if (cols > 30) cols = 30;
+        if (cols < 1) cols = 1;
+        this.setState({newtableform: [rows, cols]});
+    }
+
 
     public render() {
         return (
@@ -1574,13 +1582,13 @@ class MyTable extends React.Component<Props, TableState> {
                         </ListItem>
 
                         <ListItem >
-                            <form>
+                            <div>
                                 <label htmlFor="rowsinput">Rows </label>
-                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setState({newtableform: [parseInt(e.target.value), this.state.newtableform[1]]})}/>
+                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setTableFormValues(parseInt(e.target.value), this.state.newtableform[1])}/>
                                 <label htmlFor="rowsinput">Cols </label>
-                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setState({newtableform: [this.state.newtableform[0], parseInt(e.target.value)]})}/>
+                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setTableFormValues(this.state.newtableform[0], parseInt(e.target.value))}/>
                                 <Button onClick={() => this.createNewTable(this.state.newtableform[0], this.state.newtableform[1], false)}>Create</Button>
-                            </form>
+                            </div>
                         </ListItem>
 
                         <ListItem className="listitemtitle">
@@ -1622,10 +1630,10 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
 
                         <ListItem >
-                            <form>
+                            <div>
                                 <input type="text" id="celltextinput" name="celltextinput" value={this.state.changedatafield} onChange={(e) => this.setState({changedatafield: e.target.value})}/>
                                 <Button onClick={() => this.setSelectedCellData(this.state.changedatafield)}>Set Data</Button>
-                            </form>
+                            </div>
                         </ListItem>
 
                         <ListItem button onClick={() => this.setSelectedCellData("")}>
