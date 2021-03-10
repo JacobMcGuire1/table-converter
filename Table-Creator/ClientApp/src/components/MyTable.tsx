@@ -86,6 +86,20 @@ class TablePoint {
     }
 }
 
+function moveTablePoint(p: TablePoint, dir: Direction): TablePoint {
+    switch(dir){
+        case Direction.Up:
+            return new TablePoint(p.row - 1, p.col, undefined);
+        case Direction.Down:
+            return new TablePoint(p.row + 1, p.col, undefined);
+        case Direction.Left:
+            return new TablePoint(p.row, p.col - 1, undefined);
+        case Direction.Right:
+            return new TablePoint(p.row, p.col + 1, undefined);
+    }
+          
+}
+
 class CellDetails {
     @Type(() => TablePoint)
     public p: TablePoint;
@@ -132,12 +146,13 @@ class CellDetails {
     public getMergeChildren() {
         return this.mergechildren;
     }
+    public addMergeChild(child: string){
+        this.mergechildren.push(child);
+    }
     public unMerge() {
         this.mergeroot = "";
         this.mergechildren = [];
         this.hidden = false;
-        this.width = this.getTextWidth();
-        this.height = this.getTextHeight();
     }
     public mergeAsChild(root: string) {
         this.mergeroot = root;
@@ -148,8 +163,6 @@ class CellDetails {
         this.mergeroot = this.p.toString();
         this.mergechildren = children;
         this.hidden = false;
-        this.width = this.getTextWidth();
-        this.height = this.getTextHeight();
     }
     public enableEdit() {
         this.editing = true;
@@ -166,24 +179,6 @@ class CellDetails {
     public setBorderStyle(style: string) {
         this.borderstyle = style;
     }
-    private getTextWidth(): number {
-        if (this.isVisible()) {
-            let canvas = document.createElement('canvas'),
-                context = canvas.getContext('2d');
-            let lines = this.data.split("\n");
-            let largestwidth = 0;
-
-            for (let i = 0; i < lines.length; i++) {
-                let width = context?.measureText(lines[i])!.width! * 1.75;
-                if (width > largestwidth) {
-                    largestwidth = width;
-                }
-            }
-            return largestwidth;
-        } else {
-            return -1;
-        }
-    }
     public getData(): string {
         return this.data;
     }
@@ -191,20 +186,12 @@ class CellDetails {
     //What if merge root leaves table?
     //What if moved on top of a merge?
     public move(dir: Direction): TablePoint[]{
-        switch(dir){
-            case Direction.Up:
-                this.p = new TablePoint(this.p.row - 1, this.p.col, undefined);
-                break;
-            case Direction.Down:
-                this.p = new TablePoint(this.p.row + 1, this.p.col, undefined);
-                break;
-            case Direction.Left:
-                this.p = new TablePoint(this.p.row, this.p.col - 1, undefined);
-                break;
-            case Direction.Right:
-                this.p = new TablePoint(this.p.row, this.p.col + 1, undefined);
-                break;
-        }
+        if (this.mergeroot === this.p.toString()) this.mergeroot = moveTablePoint(new TablePoint(undefined, undefined, this.mergeroot), dir).toString();
+        this.p = moveTablePoint(this.p, dir);
+        let children = this.mergechildren.map(child => new TablePoint(undefined, undefined, child));
+        let newchildren = children.map(child => moveTablePoint(child, dir));
+        this.mergechildren = newchildren.map(child => child.toString());
+        
         return [];
     }
     public getMergeSize(): number[] {
@@ -354,46 +341,12 @@ class CellDetails {
     }
     public setData(data: string) {
         this.data = data;
-        this.width = this.getTextWidth();
-        this.height = this.getTextHeight();
     }
     public copy(): CellDetails {
         return Object.assign({}, this);
     }
     public isVisible() {
         return (this.mergeroot === this.p.toString()) || (this.mergeroot === "");
-    }
-    private calculateWidth(colwidths: number[], horizontaldividersize: number) {
-        if (this.mergeroot === this.p.toString()) {
-            let colset = new Set<number>();
-            colset.add(this.p.col);
-            this.mergechildren.forEach(
-                (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
-                    colset.add(p.col);
-                });
-            let width = 0;
-            colset.forEach(x => width = colwidths[x] + width + horizontaldividersize);
-            width = width - horizontaldividersize;
-            return width;
-        }
-        return colwidths[this.p.col];
-    }
-    private calculateHeight(rowheights: number[], verticaldividersize: number) {
-        if (this.mergeroot === this.p.toString()) {
-            let rowset = new Set<number>();
-            rowset.add(this.p.row);
-            this.mergechildren.forEach(
-                (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
-                    rowset.add(p.row);
-                });
-            let height = 0;
-            rowset.forEach(x => height = rowheights[x] + height + verticaldividersize);
-            height = height - verticaldividersize;
-            return height;
-        }
-        return rowheights[this.p.row];
     }
     private getparagraphcss() {
         //let styling: CSS.Properties = {
@@ -1339,15 +1292,6 @@ class MyTable extends React.Component<Props, TableState> {
         }             
     }
 
-    private async populateWeatherData() {
-        const response = await fetch('weatherforecast');
-        const data = await response.json();
-        const response2 = await fetch('TableImageOCR');
-        const data2 = await response2.json();
-        console.log(data);
-        console.log(data2);
-    }
-
     private async uploadIMG() {
         var test = await fetch('TableImageOCR/UploadTable', {
             method: 'POST',
@@ -1364,7 +1308,7 @@ class MyTable extends React.Component<Props, TableState> {
     private async UploadTable() {
         let fileupload = document.getElementById("file") as HTMLInputElement;
         let formData = new FormData();
-        if (fileupload.files !== null){
+        if (fileupload.files !== null) {
             formData.append('File', fileupload.files[0]);
             let request = await fetch('TableImageOCR/UploadTable', {
                 method: 'POST',
@@ -1372,9 +1316,18 @@ class MyTable extends React.Component<Props, TableState> {
                 },
                 body: formData
             });
-            let data2 = await request.json();
+            let response = await request.json();
+
+            if (!response["error"]) {
+                this.tableFromArray(response["table"] as string[][]);
+            } else {
+                alert("Table response was invalid.")
+            }
+        } else {
+            alert("Please choose a file to upload.")
         }
     }
+
 
     private handleNewTableFile(e: React.ChangeEvent<HTMLInputElement>) {
         //let file = e.target.files[0];
@@ -1498,8 +1451,11 @@ class MyTable extends React.Component<Props, TableState> {
             let cell = selectedcells[i];
             newtable[cell.p.row][cell.p.col] = new CellDetails(new TablePoint(cell.p.row, cell.p.col, undefined), ""); //replace old location with blank.
             cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
-            newtable[cell.p.row][cell.p.col] = cell;
+            if (this.checkIfPointInTable(cell.p, newtable)){
+                newtable[cell.p.row][cell.p.col] = cell;
+            }
         }
+        newtable = this.fixMerges(newtable);
         this.setState({table: newtable});
     }
 
@@ -1516,7 +1472,7 @@ class MyTable extends React.Component<Props, TableState> {
             let row = rows[i];
             this.deleteRow(row, newtable);
         }
-
+        newtable = this.fixMerges(newtable);
         this.setState({table: newtable});
     }
 
@@ -1547,7 +1503,7 @@ class MyTable extends React.Component<Props, TableState> {
             let col = cols[i];
             this.deleteCol(col, newtable);
         }
-
+        newtable = this.fixMerges(newtable);
         this.setState({table: newtable});
     }
 
@@ -1570,6 +1526,61 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({newtableform: [rows, cols]});
     }
 
+    private checkIfPointInTable(p: TablePoint, table: CellDetails[][]): boolean{
+        return (
+            p.row >= 0 &&
+            p.col >= 0 &&
+            p.row < table.length && 
+            p.col < table[0].length
+        )
+    }
+
+    private getMissingPoints(points: TablePoint[]): TablePoint[]{
+        let rows = points.map(p => p.row);
+        let cols = points.map(p => p.col);
+        
+        let fullrect: string[] = [];
+        rows.forEach(
+            row =>{
+                cols.forEach(
+                    col =>{
+                        fullrect.push(row.toString() + " " + col.toString());
+                    })
+            })
+        let strpoints = points.map(p => p.toString());
+        let ouput = fullrect.filter(p => !strpoints.includes(p));
+        
+        return ouput.map(str => new TablePoint(undefined, undefined, str));
+    }
+
+    private fixMerges(table: CellDetails[][]) {
+        let mergeroots: CellDetails[] = [];
+        for (let row = 0; row < table.length; row++) {
+            for (let col = 0; col < table[0].length; col++) {
+                let cell = table[row][col];
+                if (cell.getMergeRoot() === cell.p.toString()){
+                    mergeroots.push(cell);
+                } else {
+                    if (cell.getMergeRoot() !== ""){
+                        cell.unMerge();
+                    }
+                }
+                cell.p = new TablePoint(row, col, undefined);
+            }
+        }
+        mergeroots.forEach(
+            rootcell => {
+                let children_str = rootcell.getMergeChildren();
+                let children_p = children_str.map(cellstr => new TablePoint(undefined, undefined, cellstr));
+                children_p = children_p.filter(child => this.checkIfPointInTable(child, table));
+                children_p.forEach(
+                    child_p => {
+                        let child_cell = table[child_p.row][child_p.col];
+                        child_cell.mergeAsChild(rootcell.p.toString());
+                    })
+            })
+        return table;
+    }
 
     public render() {
         return (

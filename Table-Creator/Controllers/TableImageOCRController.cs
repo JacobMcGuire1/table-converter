@@ -24,13 +24,12 @@ namespace Table_Creator.Controllers
         [HttpGet]
         public TableImageOCR Get()
         {
-            return new TableImageOCR { Text = "mytestext" };
+            return null;
         }
 
         [HttpPost("UploadTable")]
         public TableImageOCR UploadTable([FromForm]IFormCollection form)
         {
-            try
             {
                 IFormFile file = form.Files[0];
                 var engine = new TesseractEngine(@"./tessdata", "eng");
@@ -47,15 +46,29 @@ namespace Table_Creator.Controllers
                 var text = page.GetText();
                 //page.get
                 //should remove lines and stuff
+                var table = ProcessTable(text);
 
-                return new TableImageOCR { Text = text };
+                return new TableImageOCR { Table = table, Error=false };
             }
-            catch(Exception e)
-            {
-                return new TableImageOCR { Text = "FAILED" };
-            }
+
             
             
         }
+        private string[][] ProcessTable(string tablestring)
+        {
+            var rows = tablestring.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var listtable = new List<string[]>();
+            foreach (string row in rows)
+            {
+                if (!string.IsNullOrWhiteSpace(row))
+                {
+                    var cells = row.Split(new[] { "|", "    " }, StringSplitOptions.RemoveEmptyEntries);
+                    cells = cells.Select(x => x.Trim()).ToArray();
+                    listtable.Add(cells);
+                }
+            }
+            return listtable.ToArray();
+        }
     }
+    
 }

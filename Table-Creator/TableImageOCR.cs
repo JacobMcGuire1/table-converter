@@ -7,6 +7,7 @@ namespace Table_Creator
 {
     public class TableImageOCR
     {
-        public string Text { get; set; }
+        public string[][] Table { get; set; }
+        public bool Error { get; set; }
     }
 }

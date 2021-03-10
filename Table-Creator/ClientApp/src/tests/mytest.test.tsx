@@ -227,3 +227,29 @@ test("Delete Selected Col", () => {
 });
 
 
+test("Delete Part of Merge", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let csv = "CellA,CellB,CellC\nCellD,CellE,CellF\nCellG,CellH,CellI"
+   table.testcsv(csv);
+
+   table.state.table[1][0].select();
+   table.state.table[1][1].select();
+   table.state.table[2][0].select();
+   table.state.table[2][1].select();
+
+   let mergebutton = wrapper.find('#mergebutton');
+   mergebutton.simulate("click");
+
+
+
+   table.state.table[1][2].select();
+
+
+   let button = wrapper.find('#deletecolbutton');
+   button.simulate("click");
+
+   expect(table.state.table[1][0].getMergeChildren().length).toBe(1);
+});
+
