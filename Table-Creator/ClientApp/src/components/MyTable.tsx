@@ -115,6 +115,7 @@ class CellDetails {
     public width: number = 0;
     public height: number = 0;
     public csstextalign: string = "center";
+    public verticalalign: string = "middle";
     public borders: [boolean, boolean, boolean, boolean] = [true, true, true, true]; //T R B L
 
     constructor(p: TablePoint, data: string | undefined) {
@@ -158,6 +159,9 @@ class CellDetails {
         this.mergeroot = root;
         this.mergechildren = [];
         this.hidden = true;
+    }
+    public isMergeChild(){
+        return ((this.mergeroot !== "") && (this.mergeroot !== this.p.toString()))
     }
     public mergeAsRoot(children: string[]) {
         this.mergeroot = this.p.toString();
@@ -321,6 +325,7 @@ class CellDetails {
         html += "border-right:" + this.getcssborderstyle(1)  + ";";
         html += "border-bottom:" + this.getcssborderstyle(2)  + ";";
         html += "border-left:" + this.getcssborderstyle(3)  + ";";
+        html += "vertical-align:" + this.verticalalign + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
 
         return html;
@@ -344,8 +349,12 @@ class CellDetails {
         //}
         return { textAlign: this.csstextalign};
     }
-    public setTextAlignment(alignment : string) {
+    public setHorizontalTextAlignment(alignment : string) {
         this.csstextalign = alignment;
+    }
+
+    public setVerticalTextAlignment(alignment : string) {
+        this.verticalalign = alignment;
     }
     private moveCursorToEnd(e: React.FocusEvent<HTMLTextAreaElement>) {
         let value = e.target.value;
@@ -383,8 +392,12 @@ class CellDetails {
                         borderRight: this.getcssborderstyle(1), 
                         borderBottom: this.getcssborderstyle(2), 
                         borderLeft: this.getcssborderstyle(3), 
-                        background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} 
-                        onDoubleClick={(e) => enableEditMode(this)}>
+                        background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour(),
+                        padding: "5px",
+                        verticalAlign: this.verticalalign
+                    }}
+                        onDoubleClick={(e) => enableEditMode(this)}
+                        >
                     <div>
                         {
                             this.editing ?
@@ -825,11 +838,23 @@ class MyTable extends React.Component<Props, TableState> {
         let cells = this.getSelectedCells();
         cells.forEach(
             (cell) => {
-                cell.setTextAlignment(alignment);
+                cell.setHorizontalTextAlignment(alignment);
             });
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
+
+    private setVerticalTextAlignment(alignment: string) {
+        this.addTableStateToUndoStack();
+        let cells = this.getSelectedCells();
+        cells.forEach(
+            (cell) => {
+                cell.setVerticalTextAlignment(alignment);
+            });
+        let newtable = cloneDeep(this.state.table);
+        this.setState({ table: newtable });
+    }
+
 
     /*
      * Generates a latex representation of the current table.
@@ -956,8 +981,12 @@ class MyTable extends React.Component<Props, TableState> {
         let textdata = this.state.table.map(
             row =>
                 row.map(
-                    cell =>
-                        cell.getData()
+                    cell =>{
+                        let data = cell.getData()
+                        if (data === "" || cell.isMergeChild()) return " "
+                        else return data
+                    }
+                        
                 )
         );
         let texttable = "";
@@ -1704,10 +1733,18 @@ class MyTable extends React.Component<Props, TableState> {
                         </ListItem>
 
                         <ListItem>
-                            <ListItemText primary="Text Alignment:"/>
+                            <ListItemText primary="Horizontal Text Alignment:"/>
                             <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
+                        </ListItem>
+
+
+                        <ListItem>
+                            <ListItemText primary="Vertical Text Alignment:"/>
+                            <Button onClick={() => this.setVerticalTextAlignment("top")}>Top</Button>
+                            <Button onClick={() => this.setVerticalTextAlignment("middle")}>Middle</Button>
+                            <Button onClick={() => this.setVerticalTextAlignment("bottom")}>Bottom</Button>
                         </ListItem>
 
                         <ListItem>
