@@ -227,7 +227,7 @@ test("Delete Selected Col", () => {
 });
 
 
-test("Delete Part of Merge", () => {
+/*test("Delete Part of Merge", () => {
    let wrapper = shallow(<MyTable/>);
    let table = wrapper.instance() as MyTable;
 
@@ -251,5 +251,4 @@ test("Delete Part of Merge", () => {
    button.simulate("click");
 
    expect(table.state.table[1][0].getMergeChildren().length).toBe(1);
-});
-
+});*/

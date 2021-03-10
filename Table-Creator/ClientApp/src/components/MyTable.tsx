@@ -11,6 +11,7 @@ import 'reflect-metadata';
 import cloneDeep from 'lodash/cloneDeep';
 import Papa from 'papaparse';
 import Color from 'color';
+import cloneSymbol from 'lodash/_cloneSymbol';
 
 let jsonstate = "";
 
@@ -228,9 +229,8 @@ class CellDetails {
     }
     public getLatex(leftmergecells: any): string {
         let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
-        let LRborders = [this.borders[3] ? "|" : " ", this.borders[1] ? "|" : " "];
-
-        
+        let borders = this.borderstyles.map(style => style !== "none");
+        let LRborders = [borders[3] ? "|" : " ", borders[1] ? "|" : " "];        
 
         //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
@@ -274,7 +274,7 @@ class CellDetails {
                 });
             return cells.filter(cell => cell.row === bottom); //Returns the cells at the bottom of the merge.
         }
-        if (this.mergeroot === "") return [this.p];
+        if (this.mergeroot === "" && this.borderstyles[2] !== "none") return [this.p];
         return []; //If it's child in a merge, return nothing.
     }
     public getLeftLines(): TablePoint[] {
@@ -288,7 +288,7 @@ class CellDetails {
                 });
             return cells; //Returns the cells at the bottom of the merge.
         }
-        if (this.mergeroot === "") return [this.p];
+        if (this.mergeroot === "" && this.borderstyles[3] !== "none") return [this.p];
         return []; //If it's child in a merge, return nothing.
     }
     public getHexBackgroundColour() : string {
@@ -420,6 +420,7 @@ class MyTable extends React.Component<Props, TableState> {
     private htmltextarearef: React.RefObject<HTMLTextAreaElement>;
     private texttextarearef: React.RefObject<HTMLTextAreaElement>;
     private tableref: React.RefObject<HTMLTableElement>;
+    private latexpackagesref: React.RefObject<HTMLTextAreaElement>;
     constructor(props: Props) {
         super(props);
         this.svgref = React.createRef();
@@ -427,6 +428,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.latextextarearef = React.createRef();
         this.htmltextarearef = React.createRef();
         this.texttextarearef = React.createRef();
+        this.latexpackagesref = React.createRef();
         this.tableref = React.createRef();
         this.state = { 
             table: [], 
@@ -549,18 +551,6 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: newtable });
     }
 
-    //private moveSelectedCells
-
-    //Move a cell
-    /*private moveCell(sourcepoint: TablePoint, destpoint: TablePoint, sourcetable: CellDetails[][], desttable: CellDetails[][]) : CellDetails[][] {
-        let sourcecell: CellDetails = sourcetable[sourcepoint.row][sourcepoint.col];
-        let destcell: CellDetails = cloneDeep(sourcecell);//DEEPCLONE sourcecell HERE
-        destcell.move(destpoint); //
-        desttable[destpoint.row][destpoint.col] = destcell;
-        desttable[sourcepoint.row][sourcepoint.col] = new CellDetails(sourcepoint);
-        return desttable;
-    }*/
-
     /*
      * Callback functions for interaction with individual cells
      */
@@ -600,6 +590,15 @@ class MyTable extends React.Component<Props, TableState> {
     //Copies the latex to the clipboard.
     private copyLatex(): void {
         let copyText = this.latextextarearef.current!;
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        let sel = document.getSelection();
+        sel!.removeAllRanges();
+    }
+
+    private copyLatexPackages(): void {
+        let copyText = this.latexpackagesref.current!;
         copyText.select();
         copyText.setSelectionRange(0, 99999);
         document.execCommand("copy");
@@ -672,7 +671,6 @@ class MyTable extends React.Component<Props, TableState> {
 
     private chooseBorderStyle(e: React.ChangeEvent<HTMLSelectElement>) {
         this.addTableStateToUndoStack();
-        console.log(this.state.bordermodify);
         let newtable = cloneDeep(this.state.table);
         let selectedcells = this.getSelectedCellsFromTable(newtable);
         selectedcells.forEach(
@@ -900,7 +898,7 @@ class MyTable extends React.Component<Props, TableState> {
             rowlatex = rowlatex + " \\\\";
 
             //make fized length array of bools
-            
+            //Calculates where to draw horizontal lines.
             let lines = horlines[row];//[true, true, true, true, true];
             let drawingline = false;
             let l = " ";
@@ -919,7 +917,24 @@ class MyTable extends React.Component<Props, TableState> {
             rowlatex = rowlatex + l;
             latextable.push(rowlatex);
         }
-        if (latextable.length > 0) latextable[0] = " \\hline" + "\n" + latextable[0];
+
+        //The folling code calculates the top line.
+        let toprow = this.state.table[0];
+        let toplines = toprow.map(cell => cell.borderstyles[0] !== "none");
+        let drawingline = false;
+        let topline = " ";
+        for (let i = 0; i < toplines.length; i++) {
+            let col = i + 1;
+            if (toplines[i] && !drawingline) {
+                drawingline = true;
+                topline = topline + "\\cline{" + col;
+            }
+            if ((i === toplines.length - 1 && drawingline) || (drawingline && i !== toplines.length - 1 && !toplines[i + 1])) {
+                topline = topline + "-" + col + "}";
+                drawingline = false;
+            } 
+        }
+        if (latextable.length > 0) latextable[0] = " " + topline + "\n" + latextable[0];
 
         //let bs = "\\";
         //let cu1 = "{";
@@ -936,13 +951,23 @@ class MyTable extends React.Component<Props, TableState> {
         latex += "\n\\end{tabular}";
         latex += "\n\\end{center}";
 
+        let latexpackages = "\\usepackage[utf8]{inputenc}\n";
+        latexpackages += "\\usepackage[table,xcdraw]{xcolor}\n";
+        latexpackages += "\\usepackage{multicol}\n";
+        latexpackages += "\\usepackage{multirow}";
+
         return (
             <div>
+                <h4>Required LaTeX Packages</h4>
+                <textarea readOnly={true} rows={5} cols={25} className="latex-box" id="latexpackagestextarea" ref={this.latexpackagesref} value={latexpackages}/>
+                <Button className="table-buttons" type="button" onClick={() => this.copyLatexPackages()}>Copy to clipboard</Button>
+                <h4>LaTeX</h4>
                 <textarea readOnly={true} rows={10} cols={25} className="latex-box" id="latextextarea" ref={this.latextextarearef} value={latex}/>
             </div>
             
         );
     }
+    
 
     /*
      * Generates a HTML representation of the current table.
@@ -997,7 +1022,6 @@ class MyTable extends React.Component<Props, TableState> {
             console.log(texttable);
         }
         
-        //console.log(texttable);
         return (
             <div>
                 <textarea readOnly={true} rows={10} cols={15} ref={this.latextextarearef} id="texttextarea" className="hide" value={texttable}/>
@@ -1030,7 +1054,6 @@ class MyTable extends React.Component<Props, TableState> {
         
         //Uses string conversions to compare the arrays.
         if ((this.state.startselectpoint.toString() === this.state.endselectpoint.toString()) && (this.state.startselectpoint.toString() !== "0,0")) {
-            console.log("Click select" + this.state.startselectpoint);
             this.selectWithClick(this.state.startselectpoint);
         } else {
             this.svgDragRect(ev);
@@ -1066,7 +1089,6 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
     private selectWithClick(coords: [number, number]) {
-        console.log("test");
         let svg = this.svgref.current!;
         let rect = svg.getBoundingClientRect();
         coords = [coords[0] + rect.left, coords[1] + rect.top];
@@ -1163,57 +1185,9 @@ class MyTable extends React.Component<Props, TableState> {
      * Draws the current representation of the table.
      */
     private drawTable() {
-        /*let rowheights: number[] = [];
-        let colwidths: number[] = [];
-        for (let row = 0; row < this.getRowCount(); row++) {
-            rowheights.push(this.getRowHeight(row));
-        }
-        for (let col = 0; col < this.getColCount(); col++) {
-            colwidths.push(this.getColWidth(col));
-        }
-        let tablewidth = colwidths.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getColCount());
-        let tableheight = rowheights.reduce((a, b) => a + b, 0) + (this.state.dividerpixels * this.getRowCount());*/
-
- 
-        //document.appendChild(table);
-        //React.createElement(table);
-       /* let container = <div style={{display: "inline-block", position: "absolute", visibility: "hidden", zIndex: -1}}/>;
-        //const clonedNode = clonenode;
-        //const content = enhanceMeasurableNode(clonedNode);
-
-        container.appendChild(content);
-        (container as HTMLElement).appendChild(table);
-
-        document.body.appendChild(container);
-
-        const height = container.clientHeight;
-        const width = container.clientWidth;
-
-        container.parentNode.removeChild(container);*/
-
         return (
             <div className="maintablediv" onClick={(e) => this.bigClick(e)}>
                 <svg ref={this.svgref} width="100%" height="100%" id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
-                    {/*this.state.table.map((innerArray, row) => (
-                        innerArray.map(
-                            (cell, col) =>
-                                cell.draw(
-                                    (colwidths.slice(0, col)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (col)),
-                                    (rowheights.slice(0, row)).reduce((a, b) => a + b, 0) + (this.state.dividerpixels * (row)),//row * (this.state.mincellheight + this.state.dividerpixels),
-                                    colwidths,
-                                    rowheights,
-                                    this.state.dividerpixels,
-                                    this.state.dividerpixels,
-                                    (cell: CellDetails, data: string) => this.modifyCellData(cell, data),
-                                    (cell: CellDetails) => this.selectCell(cell),
-                                    (cell: CellDetails) => this.deselectCell(cell),
-                                    (cell: CellDetails) => this.enableCellEdit(cell),
-                                    (cell: CellDetails) => this.disableCellEdit(cell),
-                                    this.state.horizontallines
-                                )
-                        )
-                                ))*/}
-                    
                     <foreignObject x={0} y={0} width="100%" height="100%">
                         <table ref={this.tableref}>
                             <tbody>
@@ -1381,12 +1355,6 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
-
-    private handleNewTableFile(e: React.ChangeEvent<HTMLInputElement>) {
-        //let file = e.target.files[0];
-        //console.log("test");
-    }
-
     private createNewTable(rows: number, cols: number, keepdata: boolean){
         if (rows <= 30 && cols <= 30){
             this.addTableStateToUndoStack();
@@ -1478,7 +1446,6 @@ class MyTable extends React.Component<Props, TableState> {
 
     private stateToJSON() : string{
         let json = JSON.stringify(this.state, null, '   ');
-        //console.log(json);
         return json;
     }
 
