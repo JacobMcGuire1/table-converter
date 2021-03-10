@@ -110,8 +110,8 @@ class CellDetails {
     private mergechildren: string[] = [];
     private data: string = "";
     private backgroundcolour: string = "";
-    private borderstyle: string = "solid";
-    private bordercolour: string = "#000000";
+    public borderstyles: [string, string, string, string] = ["solid", "solid", "solid", "solid"];
+    public bordercolours: [string, string, string, string] = ["#000000", "#000000", "#000000", "#000000"];
     public width: number = 0;
     public height: number = 0;
     public csstextalign: string = "center";
@@ -173,11 +173,11 @@ class CellDetails {
     public setBackgroundColour(chosencolour: string) {
         this.backgroundcolour = chosencolour;
     }
-    public setBorderColour(chosencolour: string) {
-        this.bordercolour = chosencolour;
+    public setBorderColour(chosencolours: [string, string, string, string]) {
+        this.bordercolours = chosencolours;
     }
-    public setBorderStyle(style: string) {
-        this.borderstyle = style;
+    public setBorderStyle(style: [string, string, string, string]) {
+        this.borderstyles = style;
     }
     public getData(): string {
         return this.data;
@@ -315,29 +315,19 @@ class CellDetails {
         if (colour !== "") {
             html += "background-color:" + colour + ";";
         }
-        html += "border: 1px solid " + this.bordercolour + ";";
         html += "padding: 5px;";
         html += "text-align: " + this.csstextalign + ";";
-        html += "border-style:" + this.borderstyle + ";";
+        html += "border-top:" + this.getcssborderstyle(0)  + ";";
+        html += "border-right:" + this.getcssborderstyle(1)  + ";";
+        html += "border-bottom:" + this.getcssborderstyle(2)  + ";";
+        html += "border-left:" + this.getcssborderstyle(3)  + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
 
         return html;
     }
-    public getHTMLStyle(){
-        let colour = this.getHexBackgroundColour();
-        let html = "";
-        if (colour !== "") {
-            html += "background-color:" + colour + ";";
-        }
-        html += "border: 1px solid " + this.bordercolour + ";";
-        html += "padding: 5px;";
-        html += "text-align: " + this.csstextalign + ";";
-        html += "border-style:" + this.borderstyle + ";";
-        return 
-    }
-    private getTextHeight(): number {
-        let lines = this.data.split("\n");
-        return lines.length * 25;
+    private getcssborderstyle(i: number){
+        let txt = " 1px " + " " + this.borderstyles[i] + " " + this.bordercolours[i];
+        return txt;
     }
     public setData(data: string) {
         this.data = data;
@@ -383,7 +373,18 @@ class CellDetails {
         let span = this.getMergeSpan();
         if (this.isVisible()) {
             return (
-                <td key={this.p.toString()} rowSpan={span.rowspan} colSpan={span.colspan} id={this.p.toString()} style={{border: "1px " + this.borderstyle + " " + this.bordercolour, background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} onDoubleClick={(e) => enableEditMode(this)}>
+                <td 
+                    key={this.p.toString()} 
+                    rowSpan={span.rowspan} 
+                    colSpan={span.colspan} 
+                    id={this.p.toString()} 
+                    style={{
+                        borderTop: this.getcssborderstyle(0), 
+                        borderRight: this.getcssborderstyle(1), 
+                        borderBottom: this.getcssborderstyle(2), 
+                        borderLeft: this.getcssborderstyle(3), 
+                        background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour()}} 
+                        onDoubleClick={(e) => enableEditMode(this)}>
                     <div>
                         {
                             this.editing ?
@@ -635,9 +636,17 @@ class MyTable extends React.Component<Props, TableState> {
         let selectedcells = this.getSelectedCellsFromTable(newtable);
         selectedcells.forEach(
             (item) => {
-                item.setBorderColour(this.chosencolour)
-            });
-        
+                let newbordercolours: [string, string, string, string] = ["", "", "", ""];
+                this.state.bordermodify.map(
+                    (val, i) => {
+                        if (val){
+                            newbordercolours[i] = this.chosencolour;
+                        } else{
+                            newbordercolours[i] = item.bordercolours[i];
+                        }
+                    });
+                item.setBorderColour(newbordercolours);
+        })
         this.setState({ table: newtable });
     }
 
@@ -655,7 +664,16 @@ class MyTable extends React.Component<Props, TableState> {
         let selectedcells = this.getSelectedCellsFromTable(newtable);
         selectedcells.forEach(
             (item) => {
-                item.setBorderStyle(e.target.value);
+                let newborderstyle: [string, string, string, string] = ["", "", "", ""];
+                this.state.bordermodify.map(
+                    (val, i) => {
+                        if (val){
+                            newborderstyle[i] = e.target.value;
+                        } else{
+                            newborderstyle[i] = item.borderstyles[i];
+                        }
+                    });
+                item.setBorderStyle(newborderstyle);
         })
         this.setState({ table: newtable });
     }
@@ -1019,6 +1037,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
     private selectWithClick(coords: [number, number]) {
+        console.log("test");
         let svg = this.svgref.current!;
         let rect = svg.getBoundingClientRect();
         coords = [coords[0] + rect.left, coords[1] + rect.top];
@@ -1308,20 +1327,25 @@ class MyTable extends React.Component<Props, TableState> {
     private async UploadTable() {
         let fileupload = document.getElementById("file") as HTMLInputElement;
         let formData = new FormData();
-        if (fileupload.files !== null) {
+        if (fileupload.files !== null && fileupload.files.length > 0) {
             formData.append('File', fileupload.files[0]);
-            let request = await fetch('TableImageOCR/UploadTable', {
-                method: 'POST',
-                headers: {
-                },
-                body: formData
-            });
-            let response = await request.json();
-
-            if (!response["error"]) {
-                this.tableFromArray(response["table"] as string[][]);
-            } else {
-                alert("Table response was invalid.")
+            try{
+                let request = await fetch('TableImageOCR/UploadTable', {
+                    method: 'POST',
+                    headers: {
+                    },
+                    body: formData
+                });
+                let response = await request.json();
+    
+                if (!response["error"]) {
+                    this.tableFromArray(response["table"] as string[][]);
+                } else {
+                    alert("Table response from server was invalid.");
+                }
+            }
+            catch{
+                alert("No response from server.");
             }
         } else {
             alert("Please choose a file to upload.")
@@ -1449,7 +1473,10 @@ class MyTable extends React.Component<Props, TableState> {
 
         for (let i = 0; i < selectedcells.length; i++) {
             let cell = selectedcells[i];
-            newtable[cell.p.row][cell.p.col] = new CellDetails(new TablePoint(cell.p.row, cell.p.col, undefined), ""); //replace old location with blank.
+            let newcell = cloneDeep(cell);
+            newcell.setData("");
+            newcell.unMerge();
+            newtable[cell.p.row][cell.p.col] = newcell; //replace old location with blank.
             cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
             if (this.checkIfPointInTable(cell.p, newtable)){
                 newtable[cell.p.row][cell.p.col] = cell;
@@ -1710,6 +1737,7 @@ class MyTable extends React.Component<Props, TableState> {
                                 <option value="solid">Solid</option>
                                 <option value="dotted">Dotted</option>
                                 <option value="dashed">Dashed</option>
+                                <option value="none">None</option>
                             </select>
                         </ListItem>
 
@@ -1762,140 +1790,3 @@ class MyTable extends React.Component<Props, TableState> {
 }
 
 export default MyTable;
-
-
-//Style stuff should be here too.
-interface SVGCellProps {
-    cell: CellDetails
-    xpixel: number
-    ypixel: number
-    width: string
-    height: string
-    changeData: Function
-    selectcell: Function
-    deselectcell: Function
-    enableedit: Function
-    disableedit: Function
-    selected: boolean
-    editing: boolean
-    hlines: boolean
-    backgroundcolour: string
-    bordercolour: string
-    borderstyle: string
-    paragraphcss: any
-}
-
-class SVGCell extends React.Component<SVGCellProps, {}> {
-    private changeData(e: React.ChangeEvent<HTMLTextAreaElement>) {
-        this.props.changeData(this.props.cell, e.target.value);
-    }
-    private disableEdit(e: React.FocusEvent<HTMLTextAreaElement>) {
-        this.props.disableedit(this.props.cell);
-    }
-    private moveCursorToEnd(e: React.FocusEvent<HTMLTextAreaElement>) {
-        let value = e.target.value;
-        e.target.value = "";
-        e.target.value = value;
-    }
-    private getText() {
-        if (!this.props.editing) {
-            //<text x={this.props.xpixel + this.props.width / 2} y={this.props.ypixel + 20} textAnchor={"middle"} alignmentBaseline={"central"} className="celltext">{lines[0]}</text>
-            //if (lines.length === 1) {
-            //let styling: CSS.Properties = {
-           //     textAlign: "left",
-            //}
-            return (
-                <g>
-                    <foreignObject x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height}>
-                        <div className="celldiv">
-                            <p className="celltext" style={this.props.paragraphcss}>{this.props.cell.getData()}</p>
-                        </div>
-                    </foreignObject>
-                </g>
-            );
-        } else {
-            return (
-                <foreignObject x={this.props.xpixel} y={this.props.ypixel} width={this.props.width} height={this.props.height}>
-                    <textarea className="cell-input" value={this.props.cell.getData()} rows={ 100 } tabIndex={0} onChange={(e) => this.changeData(e)} onBlur={(e) => this.disableEdit(e)} autoFocus={true} onFocus={(e) => this.moveCursorToEnd(e)}/>
-                    {/*<div contentEditable={true} tabIndex={0} onBlur={(e) => this.disableEdit(e)} onChange={(e) => this.changeData(e)} suppressContentEditableWarning={true} id={this.props.cell.p.toString() + "editdiv"}>
-                        {this.props.cell.getData()}
-                    </div>*/}
-                </foreignObject>
-            );
-        }
-    }
-    private clickCell(e: React.MouseEvent<SVGGElement, MouseEvent>) {
-        /*if (this.props.selected) {
-            this.props.deselectcell(this.props.cell);
-        } else {
-            this.props.selectcell(this.props.cell);
-        }*/
-    }
-    private getRectColour() {
-        /*if (this.props.selected) {
-            return "red";
-        }*/
-        if (this.props.backgroundcolour === "") {
-            return "white"
-        }
-        return this.props.backgroundcolour;
-    }
-    private getBorderColour() {
-        //if (this.props.selected) {
-        //    return "yellow";
-        //}
-        return this.props.bordercolour;
-    }
-    private getSelectedStyling() {
-        if (this.props.selected) {
-            return (
-                <rect x={2} y={2} width="calc(100% - 2px)" height="calc(100% - 2px)" fill="none" stroke="red" strokeWidth={2} />
-            )
-        }
-    }
-    private getBorderStyle() {
-        switch (this.props.borderstyle) {
-            case "solid":
-                return "";
-            case "dotted":
-                return "2,2";
-            case "dashed":
-                return "5,5";
-        }
-    }
-    componentDidUpdate() {
-    }
-    private newgettext(){
-        
-    }
-    public render() {
-        /*return (
-            <div>
-                
-                
-                <svg>
-                    
-                    <g onDoubleClick={() => this.props.enableedit(this.props.cell)} onClick={(e) => this.clickCell(e)} id={this.props.cell.p.toString()} className="ACell">
-                        <rect x={0} y={0} width="100%" height="100%" fill={this.getRectColour()} stroke={this.getBorderColour()} strokeWidth={this.props.hlines ? 1 : 0} strokeDasharray={this.getBorderStyle()}/>
-                        {this.getSelectedStyling()}
-                    </g>
-                    <foreignObject x={0} y={0} width="100%" height="100%">
-                        {this.newgettext()}
-                        
-                    </foreignObject>
-                </svg>
-                
-            </div>
-            
-        );*/
-        return (
-            <td id={this.props.cell.p.toString()} style={{border: "1px solid", background: this.props.selected ? "pink" : ""}}>
-                <div>
-                    <p className="celltext">
-                        {this.props.cell.getData()}
-                    </p>
-                </div>
-            </td>
-        )
-    }
-}

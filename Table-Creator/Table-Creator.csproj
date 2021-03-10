@@ -17,6 +17,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
+    <PackageReference Include="MySql.Data" Version="8.0.23" />
     <PackageReference Include="Tesseract" Version="4.1.1" />
   </ItemGroup>
 

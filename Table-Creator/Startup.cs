@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MySql.Data.MySqlClient;
+using System;
 
 namespace Table_Creator
 {
@@ -28,6 +30,8 @@ namespace Table_Creator
             {
                 configuration.RootPath = "ClientApp/build";
             });
+
+            services.AddTransient<Table_Creator.Database>(_ => new Table_Creator.Database("server=DESKTOP-QNCFKPB:3306; database=TableDB; uid=root; pwd=password;"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -70,5 +74,7 @@ namespace Table_Creator
                 }
             });
         }
+       
+
     }
 }
