@@ -141,7 +141,7 @@ test("Move Cell", () => {
     button.simulate("click");
     let cell = wrapper.find('td[id="1 0"]');
     expect(cell.contains("CellA")).toBeTruthy();
-    expect(table.state.table[0][0].getData()).toBe("");
+    expect(table.state.table[0][0].getData()).toBe("CellC");
 });
 test("Move Cell out of table", () => {
     let wrapper = enzyme_1.shallow(React.createElement(MyTable_1.default, null));
@@ -155,8 +155,8 @@ test("Move Cell out of table", () => {
     let button = wrapper.find('#movecellsupbutton');
     button.simulate("click");
     let cell = wrapper.find('td[id="0 0"]');
-    expect(cell.contains("CellA")).toBeFalsy();
-    expect(table.state.table[0][0].getData()).toBe("");
+    expect(cell.contains("CellA")).toBeTruthy();
+    expect(table.state.table[1][0].getData()).toBe("CellC");
 });
 test("Delete Selected Row", () => {
     let wrapper = enzyme_1.shallow(React.createElement(MyTable_1.default, null));

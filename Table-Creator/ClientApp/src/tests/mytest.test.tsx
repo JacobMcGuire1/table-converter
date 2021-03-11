@@ -195,7 +195,7 @@ test("Move Cell", () => {
 
    let cell = wrapper.find('td[id="1 0"]');
    expect(cell.contains("CellA")).toBeTruthy();
-   expect(table.state.table[0][0].getData()).toBe("");
+   expect(table.state.table[0][0].getData()).toBe("CellC");
 });
 
 test("Move Cell out of table", () => {
@@ -214,8 +214,8 @@ test("Move Cell out of table", () => {
    button.simulate("click");
 
    let cell = wrapper.find('td[id="0 0"]');
-   expect(cell.contains("CellA")).toBeFalsy();
-   expect(table.state.table[0][0].getData()).toBe("");
+   expect(cell.contains("CellA")).toBeTruthy();
+   expect(table.state.table[1][0].getData()).toBe("CellC");
 });
 
 test("Delete Selected Row", () => {

@@ -111,6 +111,7 @@ class CellDetails {
     private mergechildren: string[] = [];
     private data: string = "";
     private backgroundcolour: string = "";
+    private textcolour: string = "";
     public borderstyles: [string, string, string, string] = ["solid", "solid", "solid", "solid"];
     public bordercolours: [string, string, string, string] = ["#000000", "#000000", "#000000", "#000000"];
     public width: number = 0;
@@ -181,6 +182,9 @@ class CellDetails {
     public setBackgroundColour(chosencolour: string) {
         this.backgroundcolour = chosencolour;
     }
+    public setTextColour(chosencolour: string) {
+        this.textcolour = chosencolour;
+    }
     public setBorderColour(chosencolours: [string, string, string, string]) {
         this.bordercolours = chosencolours;
     }
@@ -230,6 +234,40 @@ class CellDetails {
         if (this.backgroundcolour === "") return "";
         return "\\cellcolor[HTML]{" + this.backgroundcolour.replace('#', '').toUpperCase() + "}";
     }
+    private getLatexTextColour() {
+        if (this.textcolour === "") return "";
+        return "\\color[HTML]{" + this.textcolour.replace('#', '').toUpperCase() + "}";
+    }
+    private getBotLeftPoint(): TablePoint{
+        let child_ps  = this.mergechildren.map(str => new TablePoint(undefined, undefined, str));
+        let row = Math.max(...child_ps.map(child => child.row));
+        let col = Math.min(...child_ps.map(child => child.col));
+        return new TablePoint(row, col, undefined);
+    }
+    public getBotLeftOfMultiRowMerge(): [TablePoint, string] | undefined {
+        let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+        let borders = this.borderstyles.map(style => style !== "none");
+        let LRborders = [borders[3] ? "|" : " ", borders[1] ? "|" : " "];        
+
+        //If it's a normal unmerged cell.
+        if (this.mergeroot === "") {
+            return undefined;
+        }
+
+        if (this.mergeroot === this.p.toString()) {
+            let size = this.getMergeSize();
+            let h = size[0];
+            let w = size[1];
+            if (w === 0) {
+                return [this.getBotLeftPoint(), "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + "\\multirow{-" + (h + 1).toString() + "} {*} {" + this.getLatexTextColour() + data + "}}  &"];
+            }
+            if (h === 0) {
+                return undefined;
+            }
+            return [this.getBotLeftPoint(), "\\multicolumn{" + (w + 1).toString() + "}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + "\\multirow{-" + (h + 1).toString() + "} {*} {" + this.getLatexTextColour() + data + "}" + "} &"];
+        }  
+        return undefined;
+    }
     public getLatex(leftmergecells: any): string {
         let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
         let borders = this.borderstyles.map(style => style !== "none");
@@ -237,7 +275,7 @@ class CellDetails {
 
         //If it's a normal unmerged cell.
         if (this.mergeroot === "") {
-            data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "}";
+            data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + this.getLatexTextColour() + data + "}";
             return data + " &";
         }
         //If it's the root cell of a group of merged cells.
@@ -246,20 +284,20 @@ class CellDetails {
             let h = size[0];
             let w = size[1];
             if (w === 0) {
-                let result = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}}  &";
+                let result = "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + this.getLatexBackgroundColour() + "} &";
                 return  result;
             }
             if (h === 0) {
-                return "\\multicolumn{" + (w + 1).toString() + "}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + data + "} &";
+                return "\\multicolumn{" + (w + 1).toString() + "}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + this.getLatexTextColour() + data + "} &";
             }
-            return "\\multicolumn{" + (w + 1).toString() + "}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + "\\multirow{" + (h + 1).toString() + "} {*} {" + data + "}" + "} &";
+            return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + this.getLatexBackgroundColour() + "} &";
         }
         //return "THIS CELL SHOULD NOT BE DISPLAYED";
         let rootp = new TablePoint(undefined, undefined, this.mergeroot);
         if (this.p.row > rootp.row) {
             let leftmerge = leftmergecells[this.p.toString()];
             if (leftmerge !== undefined) {
-                return "\\multicolumn{" + (leftmerge + 1).toString() + "}{|c|}{} &";
+                return "\\multicolumn{" + (leftmerge + 1).toString() + "}{|c|}{" + this.getLatexBackgroundColour() + "} &";
             }
             //return "&";
         }     
@@ -329,6 +367,7 @@ class CellDetails {
         html += "border-bottom:" + this.getcssborderstyle(2)  + ";";
         html += "border-left:" + this.getcssborderstyle(3)  + ";";
         html += "vertical-align:" + this.verticalalign + ";";
+        html += "color:" + this.textcolour + ";";
         html += "'>" + escapeHTML(this.getData()) + "</td >\n";
 
         return html;
@@ -406,7 +445,7 @@ class CellDetails {
                             this.editing ?
                             <textarea className="cell-input" value={this.getData()} rows={ this.getData().split("\n").length + 1 } cols={ this.getLengthOfLongestLine(this.getData()) + 4 } tabIndex={0} onChange={(e) => changeData(this, e.target.value)} onBlur={(e) => disableEditMode(this)} autoFocus={true} onFocus={(e) => this.moveCursorToEnd(e)}/>
                             :
-                            <p className="celltext" style={{textAlign: this.csstextalign as any}}>{this.getData()}</p>
+                            <p className="celltext" style={{textAlign: this.csstextalign as any, color: this.textcolour}}>{this.getData()}</p>
                         }
                     </div>
                 </td>
@@ -640,6 +679,27 @@ class MyTable extends React.Component<Props, TableState> {
         selectedcells.forEach(
             (item) => {
                 item.setBackgroundColour(this.chosencolour)
+                if (item.isMergeRoot()){
+                    let children_p = item.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
+                    let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
+                    children_cells.forEach(child_cell => child_cell.setBackgroundColour(this.chosencolour));
+                }
+            });
+        let newtable = cloneDeep(this.state.table);
+        this.setState({ table: newtable });
+    }
+
+    private setCellTextColours() {
+        this.addTableStateToUndoStack();
+        let selectedcells = this.getSelectedCells();
+        selectedcells.forEach(
+            (item) => {
+                item.setTextColour(this.chosencolour)
+                if (item.isMergeRoot()){
+                    let children_p = item.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
+                    let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
+                    children_cells.forEach(child_cell => child_cell.setTextColour(this.chosencolour));
+                }
             });
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
@@ -797,6 +857,10 @@ class MyTable extends React.Component<Props, TableState> {
             let childrenstrings = children.map(x => x.p.toString());
             root.mergeAsRoot(childrenstrings);
 
+            let children_p = root.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
+            let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
+            children_cells.forEach(child_cell => child_cell.setBackgroundColour(this.chosencolour));
+
             let newtable = cloneDeep(this.state.table);
             this.setState({ table: newtable });
         }
@@ -890,14 +954,21 @@ class MyTable extends React.Component<Props, TableState> {
                     }
                 });
         }
-
+        let botleftmergecells = new Map<string, string>();
         let latextable = [];
         for (let row = 0; row < this.getRowCount(); row++) {
             let rowarray = this.state.table[row];
             let rowlatex = "";
             rowarray.forEach(
                 (x) => {
-                    rowlatex = rowlatex + x.getLatex(leftmergecells);
+                    let botleft = x.getBotLeftOfMultiRowMerge();
+                    if (botleft) botleftmergecells.set(botleft[0].toString(), botleft[1]);
+                    if (botleftmergecells.has(x.p.toString())){
+                        rowlatex = rowlatex + botleftmergecells.get(x.p.toString());
+                    }else{
+                        rowlatex = rowlatex + x.getLatex(leftmergecells);
+                    }
+                    
                 }); /* Escapes & characters and backslashes */
             if (rowlatex.charAt(rowlatex.length - 1) === '&') rowlatex = rowlatex.slice(0, -1);
             rowlatex = rowlatex + " \\\\";
@@ -1783,6 +1854,10 @@ class MyTable extends React.Component<Props, TableState> {
                         </ListItem>
                         <ListItem button onClick={() => this.setCellBorderColours()}>
                             <ListItemText primary="Set cell borders to this colour" />
+                        </ListItem>
+
+                        <ListItem button onClick={() => this.setCellTextColours()}>
+                            <ListItemText primary="Set cell text to this colour" />
                         </ListItem>
 
                         <ListItem>
