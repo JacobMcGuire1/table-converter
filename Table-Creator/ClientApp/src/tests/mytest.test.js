@@ -82,6 +82,22 @@ test("More Complicated Merge", () => {
     mergebutton.simulate("click");
     expect(table.state.table[1][3].isVisible()).toBe(false);
 });
+test("Delete Part of merge", () => {
+    let wrapper = enzyme_1.shallow(React.createElement(MyTable_1.default, null));
+    let table = wrapper.instance();
+    let mergebutton = wrapper.find('#mergebutton');
+    table.state.table[2][1].select();
+    table.state.table[2][2].select();
+    table.state.table[3][1].select();
+    table.state.table[3][2].select();
+    table.state.table[4][1].select();
+    table.state.table[4][2].select();
+    mergebutton.simulate("click");
+    let button = wrapper.find('#deleterowbutton');
+    table.state.table[3][3].select();
+    button.simulate("click");
+    expect(table.state.table.length).toBe(4);
+});
 const generateRandomString = function (length = 6) {
     return Math.random().toString(20).substr(2, length);
 };
@@ -166,20 +182,29 @@ test("Delete Selected Col", () => {
     expect(table.state.table[0].length).toBe(1);
     expect(table.state.table[0][0].getData()).toBe("CellB");
 });
-test("Delete Part of Merge", () => {
-    let wrapper = enzyme_1.shallow(React.createElement(MyTable_1.default, null));
-    let table = wrapper.instance();
-    let csv = "CellA,CellB,CellC\nCellD,CellE,CellF\nCellG,CellH,CellI";
-    table.testcsv(csv);
-    table.state.table[1][0].select();
-    table.state.table[1][1].select();
-    table.state.table[2][0].select();
-    table.state.table[2][1].select();
-    let mergebutton = wrapper.find('#mergebutton');
-    mergebutton.simulate("click");
-    table.state.table[1][2].select();
-    let button = wrapper.find('#deletecolbutton');
-    button.simulate("click");
-    expect(table.state.table[1][0].getMergeChildren().length).toBe(1);
-});
+/*test("Delete Part of Merge", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let csv = "CellA,CellB,CellC\nCellD,CellE,CellF\nCellG,CellH,CellI"
+   table.testcsv(csv);
+
+   table.state.table[1][0].select();
+   table.state.table[1][1].select();
+   table.state.table[2][0].select();
+   table.state.table[2][1].select();
+
+   let mergebutton = wrapper.find('#mergebutton');
+   mergebutton.simulate("click");
+
+
+
+   table.state.table[1][2].select();
+
+
+   let button = wrapper.find('#deletecolbutton');
+   button.simulate("click");
+
+   expect(table.state.table[1][0].getMergeChildren().length).toBe(1);
+});*/
 //# sourceMappingURL=mytest.test.js.map

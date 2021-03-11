@@ -10,7 +10,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     margin: 0px 0px 0px 450px;
-    height: 900px;
+    height:900px;
 }
 .table-buttons-div {
     margin: 10px;
@@ -95,12 +95,26 @@
 }
 
 .maintablediv {
-    display: flex;
+    float: left;
   justify-content: center;
   align-items: center;
+  position: relative;
+  margin: 0px 0px 0px 450px;
+  height: 100%;
+  z-index: -1;
 }
 
 .listitemtitle {
     margin: 0px;
     padding: 0px;
+}
+
+#outputdiv {
+    float: right;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 10;
+    position: relative;
+    /*word-break: break-all;*/
 }

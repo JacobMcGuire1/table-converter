@@ -104,10 +104,10 @@ function moveTablePoint(p: TablePoint, dir: Direction): TablePoint {
 class CellDetails {
     @Type(() => TablePoint)
     public p: TablePoint;
-    private hidden: boolean = false;
+    public hidden: boolean = false;
     private editing: boolean = false;
     private selected: boolean = false;
-    private mergeroot: string = "";
+    public mergeroot: string = "";
     private mergechildren: string[] = [];
     private data: string = "";
     private backgroundcolour: string = "";
@@ -160,6 +160,9 @@ class CellDetails {
         this.mergeroot = root;
         this.mergechildren = [];
         this.hidden = true;
+    }
+    public isMergeRoot(){
+        return this.mergeroot === this.p.toString();
     }
     public isMergeChild(){
         return ((this.mergeroot !== "") && (this.mergeroot !== this.p.toString()))
@@ -864,6 +867,8 @@ class MyTable extends React.Component<Props, TableState> {
         }
 
         //Preprocess for horizontal lines.
+
+        //Create temporary array to show where horizontal lines are. Initialised with false.
         let horlines = Array(this.getRowCount()).fill(undefined).map(() => Array(this.getColCount()).fill(false));
         //let leftmergecells = {};
         let leftmergecells: { [key: string]: number; } = {};
@@ -959,6 +964,7 @@ class MyTable extends React.Component<Props, TableState> {
         return (
             <div>
                 <h4>Required LaTeX Packages</h4>
+                <p>Place these at the top of the LaTeX document.</p>
                 <textarea readOnly={true} rows={5} cols={25} className="latex-box" id="latexpackagestextarea" ref={this.latexpackagesref} value={latexpackages}/>
                 <Button className="table-buttons" type="button" onClick={() => this.copyLatexPackages()}>Copy to clipboard</Button>
                 <h4>LaTeX</h4>
@@ -1187,9 +1193,9 @@ class MyTable extends React.Component<Props, TableState> {
     private drawTable() {
         return (
             <div className="maintablediv" onClick={(e) => this.bigClick(e)}>
-                <svg ref={this.svgref} width="100%" height="100%" id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
-                    <foreignObject x={0} y={0} width="100%" height="100%">
-                        <table ref={this.tableref}>
+                <svg ref={this.svgref} width="9000px" height="9000px" id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
+                    <foreignObject x="0%" y="0%" width="100%" height="100%">
+                        <table ref={this.tableref} className="maintable">
                             <tbody>
                                 {
                                 this.state.table.map((innerArray, row) => (
@@ -1466,20 +1472,91 @@ class MyTable extends React.Component<Props, TableState> {
         this.addTableStateToUndoStack();
         let newtable = cloneDeep(this.state.table);
         let selectedcells = this.getSelectedCellsFromTable(newtable);
-
-        for (let i = 0; i < selectedcells.length; i++) {
-            let cell = selectedcells[i];
-            let newcell = cloneDeep(cell);
-            newcell.setData("");
-            newcell.unMerge();
-            newtable[cell.p.row][cell.p.col] = newcell; //replace old location with blank.
-            cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
-            if (this.checkIfPointInTable(cell.p, newtable)){
-                newtable[cell.p.row][cell.p.col] = cell;
-            }
+        selectedcells.forEach(
+            (cell) =>{
+                if (cell.isMergeRoot()){
+                    let children = cell.getMergeChildren().map(str => new TablePoint(undefined, undefined, str));
+                    children.forEach(
+                        child_p => {
+                            let childcell = newtable[child_p.row][child_p.col];
+                            selectedcells.push(childcell);
+                        })
+                }
+            })
+        
+        let unmovablemarges: string[] = [];
+        switch(dir){
+            case Direction.Up:
+            case Direction.Left:
+                for (let i = 0; i < selectedcells.length; i++) {
+                    if(!unmovablemarges.includes(selectedcells[i].getMergeRoot())){
+                        let result = this.moveSelectedCellsLoopContent(selectedcells, i, newtable, dir);
+                        if (result !== "") unmovablemarges.push(result)
+                    }
+                }
+                break;
+            case Direction.Down:
+            case Direction.Right:
+                for (let i = selectedcells.length - 1; i >= 0; i--) {
+                    if(!unmovablemarges.includes(selectedcells[i].getMergeRoot())){
+                        let result = this.moveSelectedCellsLoopContent(selectedcells, i, newtable, dir);
+                        if (result !== "") unmovablemarges.push(result)
+                    }
+                }
+                break;
+            default:
+                break;
         }
+        
         newtable = this.fixMerges(newtable);
         this.setState({table: newtable});
+    }
+
+
+    //Returns the merge root if that merge can't be moved.
+    private moveSelectedCellsLoopContent(selectedcells: CellDetails[], i: number, newtable: CellDetails[][], dir: Direction): string{
+        let cell = selectedcells[i];
+        //let newcell = cloneDeep(cell);
+        //newcell.setData("");
+        //newcell.unMerge();
+        //newcell.deselect();
+        //newtable[cell.p.row][cell.p.col] = newcell; //replace old location with blank.
+        if(!(cell.isMergeChild() || cell.isMergeRoot)) {
+            cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
+            if (this.checkIfPointInTable(cell.p, newtable)){
+                let oldcell = newtable[cell.p.row][cell.p.col];
+                newtable[cell.p.row][cell.p.col] = cell;
+                oldcell.move(this.getOppositedir(dir)); //Opposite direction
+                newtable[oldcell.p.row][oldcell.p.col] = oldcell;
+            }
+        } else {
+            if (!this.checkIfPointInTable(moveTablePoint(cell.p, dir), newtable)){
+                return cell.getMergeRoot();
+            } else {
+                cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
+                if (this.checkIfPointInTable(cell.p, newtable)){
+                    let oldcell = newtable[cell.p.row][cell.p.col];
+                    newtable[cell.p.row][cell.p.col] = cell;
+                    oldcell.move(this.getOppositedir(dir)); //Opposite direction
+                    newtable[oldcell.p.row][oldcell.p.col] = oldcell;
+                }
+            }
+        }
+        return "";
+        
+    }
+
+    private getOppositedir(dir: Direction): Direction {
+        switch(dir){
+            case Direction.Up:
+                return Direction.Down;
+            case Direction.Down:
+                return Direction.Up;
+            case Direction.Left:
+                return Direction.Right;
+            case Direction.Right:
+                return Direction.Left;   
+        }
     }
 
     //Needs to understand merged cells?
@@ -1583,12 +1660,17 @@ class MyTable extends React.Component<Props, TableState> {
                 let cell = table[row][col];
                 if (cell.getMergeRoot() === cell.p.toString()){
                     mergeroots.push(cell);
+                   
+                    cell.p = new TablePoint(row, col, undefined);
+                    if (cell.getMergeRoot() !== cell.p.toString()){
+                        cell.unMerge();
+                    }
                 } else {
                     if (cell.getMergeRoot() !== ""){
                         cell.unMerge();
                     }
+                    cell.p = new TablePoint(row, col, undefined);
                 }
-                cell.p = new TablePoint(row, col, undefined);
             }
         }
         mergeroots.forEach(
@@ -1600,7 +1682,19 @@ class MyTable extends React.Component<Props, TableState> {
                     child_p => {
                         let child_cell = table[child_p.row][child_p.col];
                         child_cell.mergeAsChild(rootcell.p.toString());
+                        child_cell.hidden = true;
                     })
+                let newchildren_str = children_p.map((child) => child.toString());
+                if (newchildren_str.length === 0){
+                    if (children_str.length === 0) {
+                        rootcell.mergeAsChild(rootcell.mergeroot);
+                    }else{
+                        rootcell.unMerge();
+                    }
+                } else {
+                    rootcell.mergeAsRoot(newchildren_str);
+                }
+                
             })
         return table;
     }
@@ -1629,7 +1723,7 @@ class MyTable extends React.Component<Props, TableState> {
                             Upload Table Image
                         </ListItem>
                         <ListItem className="listitemtitle">
-                            <input type="file" id="file" accept="image/*" onChange={(e) => this.handleNewTableFile(e) }/>
+                            <input type="file" id="file" accept="image/*" />
                             <Button onClick={() => this.UploadTable()}>Upload</Button>
                         </ListItem>
 
@@ -1751,41 +1845,24 @@ class MyTable extends React.Component<Props, TableState> {
                 </Drawer>
 
                 
-                <div className="root-div" >
 
-                        {/*
-                            <div className="table-buttons-div">
-                                <h3>Border Styling</h3>
 
-                            Top
-                            <input type="checkbox" value="top" checked={this.state.bordermodify[0]} onClick={() => this.selectBorderToModify(0)} />
-                            Right
-                            <input type="checkbox" value="right" checked={this.state.bordermodify[1]} onClick={() => this.selectBorderToModify(1)} />
-                            Bottom
-                            <input type="checkbox" value="bottom" checked={this.state.bordermodify[2]} onClick={() => this.selectBorderToModify(2)} />
-                            Left
-                            <input type="checkbox" value="left" checked={this.state.bordermodify[3]} onClick={() => this.selectBorderToModify(3)} />
+            {this.drawTable()}
 
-                            </div>
-                        */}
-
-                        {this.drawTable()}
-
-                    <div>
-                        <AppBar position="static">
-                            <Tabs id="tabbar" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
-                                <Tab label="LaTeX" tabIndex={0}/>
-                                <Tab label="HTML" tabIndex={1}/>
-                                <Tab label="Text" tabIndex={2}/>
-                                <Tab label="PNG" tabIndex={3}/>
-                            </Tabs>
-                        </AppBar>
-                        <div id="tabContentDiv">
-                            {this.getTabContent()}
-                        </div>
-                            
-                    </div>
+            <div id="outputdiv">
+                <AppBar position="static">
+                    <Tabs id="tabbar" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
+                        <Tab label="LaTeX" tabIndex={0}/>
+                        <Tab label="HTML" tabIndex={1}/>
+                        <Tab label="Text" tabIndex={2}/>
+                        <Tab label="PNG" tabIndex={3}/>
+                    </Tabs>
+                </AppBar>
+                <div id="tabContentDiv">
+                    {this.getTabContent()}
                 </div>
+                    
+            </div>
                 
             </div>
         );

@@ -116,6 +116,28 @@ test("More Complicated Merge", () => {
 });
 
 
+test("Delete Part of merge", () => {
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   let mergebutton = wrapper.find('#mergebutton');
+
+   table.state.table[2][1].select();
+   table.state.table[2][2].select();
+   table.state.table[3][1].select();
+   table.state.table[3][2].select();
+   table.state.table[4][1].select();
+   table.state.table[4][2].select();
+   mergebutton.simulate("click");
+
+   let button = wrapper.find('#deleterowbutton');
+   table.state.table[3][3].select();
+   button.simulate("click");
+
+   expect(table.state.table.length).toBe(4)
+});
+
+
 
  const generateRandomString = function(length=6){
    return Math.random().toString(20).substr(2, length)
