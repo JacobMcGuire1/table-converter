@@ -38,7 +38,9 @@
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box; /* Firefox, other Gecko */
     box-sizing: border-box; /* Opera/IE 8+ */
-    margin: 5px;
+    top: 1%;
+    display: block;
+    Margin: 15px auto 15px auto;
 }
 
 #textcodeblock {
@@ -68,7 +70,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    margin: 0px 4px 0px;
+    margin:10px;
     white-space: pre-wrap;
     /*vertical-align: bottom;
     display: table-cell;*/
@@ -99,9 +101,12 @@
   justify-content: center;
   align-items: center;
   position: relative;
-  margin: 0px 0px 0px 450px;
+  margin: 0px 0px 0px 430px;
   height: 100%;
-  z-index: -1;
+
+}
+.maintable {
+    margin: 25px;
 }
 
 .listitemtitle {
@@ -110,11 +115,22 @@
 }
 
 #outputdiv {
-    float: right;
+    /*float: right;
     justify-content: center;
     align-items: center;
     text-align: center;
-    z-index: 10;
-    position: relative;
+    z-index: -1;
+    position: relative;*/
+    width: 30%;
+    text-align: center;
+    float: right;
+    position: fixed;
+    right:0;
     /*word-break: break-all;*/
+    background-color: white;
+    opacity: 90%;
+}
+
+.tablesavetextbox {
+    margin: 5px;
 }

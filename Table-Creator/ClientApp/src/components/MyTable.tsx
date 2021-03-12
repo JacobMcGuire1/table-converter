@@ -3,7 +3,7 @@ import * as React from 'react';
 //import { findDOMNode } from 'react-dom';
 import './MyTable.css';
 import { table } from 'table';
-import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField } from '@material-ui/core';
+import { Drawer, Button, List, ListItem, ListItemIcon, ListItemText, Popover, AppBar, Tabs, Tab, Toolbar, TextField, Checkbox, Divider, Dialog, DialogTitle } from '@material-ui/core';
 import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import ToggleButton from '@material-ui/lab/ToggleButton';
 import { plainToClass, Type } from 'class-transformer';
@@ -38,7 +38,6 @@ type Props = {
 };
 */
 
-
 type TableState = {
     table: CellDetails[][];
     selecting: boolean;
@@ -48,8 +47,15 @@ type TableState = {
     newtableform: [number, number];
     changedatafield: string;
     tab: number;
+    prefillcellscheck: boolean;
+    username: string;
+    password: string;
+    mytables: [string, string][];
+    showaccountdialog: boolean;
+    currenttablename: string;
+    showoutput: boolean;
 }
-
+//
 function escapeLatex(str: string){
     str = str.split("\\").join("\\textbackslash");
     str = str.split("&").join("\\&");
@@ -123,7 +129,9 @@ class CellDetails {
     constructor(p: TablePoint, data: string | undefined) {
         this.p = p;
         if (data === undefined){
-            this.setData(p.toString());
+            if (p){
+                this.setData(p.toString());
+            }
         }else{
             this.setData(data);
         }
@@ -244,8 +252,13 @@ class CellDetails {
         let col = Math.min(...child_ps.map(child => child.col));
         return new TablePoint(row, col, undefined);
     }
+    private fixLatexLinebreaks(input: string){
+        let lines = input.split("\n");
+        if (lines.length === 1) return input;
+        return "\\thead{" + lines.join("\\\\") + "}";
+    }
     public getBotLeftOfMultiRowMerge(): [TablePoint, string] | undefined {
-        let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+        let data = this.getLatexBackgroundColour() + this.fixLatexLinebreaks(escapeLatex(this.getData()));
         let borders = this.borderstyles.map(style => style !== "none");
         let LRborders = [borders[3] ? "|" : " ", borders[1] ? "|" : " "];        
 
@@ -269,7 +282,7 @@ class CellDetails {
         return undefined;
     }
     public getLatex(leftmergecells: any): string {
-        let data = this.getLatexBackgroundColour() + escapeLatex(this.getData());
+        let data = this.getLatexBackgroundColour() + this.fixLatexLinebreaks(escapeLatex(this.getData()));
         let borders = this.borderstyles.map(style => style !== "none");
         let LRborders = [borders[3] ? "|" : " ", borders[1] ? "|" : " "];        
 
@@ -480,7 +493,14 @@ class MyTable extends React.Component<Props, TableState> {
             bordermodify: [true,true,true,true], 
             tab: 0, 
             newtableform: [this.props.initialrows, this.props.initialcols], 
-            changedatafield: ""
+            changedatafield: "",
+            prefillcellscheck: this.props.prefillcells,
+            username: "",
+            password: "",
+            mytables: [],
+            showaccountdialog: false,
+            currenttablename: "A table",
+            showoutput: true,
         };
         this.testPopulateTable();
     }
@@ -554,6 +574,17 @@ class MyTable extends React.Component<Props, TableState> {
         return selectedcells;
     }
 
+    private getAllCells() {
+        let cells = [];
+        for (let row = 0; row < this.getRowCount(); row++) {
+            for (let col = 0; col < this.getColCount(); col++) {
+                let cell = this.state.table[row][col];
+                cells.push(cell);
+            }
+        }
+        return cells;
+    }
+
     private getSelectedCellsFromTable(table: CellDetails[][]) {
         let rows = table.length;
         let cols = table[0].length;
@@ -574,7 +605,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         let row: CellDetails[] = [];
         for (let col = 0; col < this.getColCount(); col++) {
-            let cell = new CellDetails(new TablePoint(this.getRowCount(), col), this.props.prefillcells ? undefined : ""); //May need to add 1 to getrowcount()
+            let cell = new CellDetails(new TablePoint(this.getRowCount(), col), this.state.prefillcellscheck ? undefined : ""); //May need to add 1 to getrowcount()
             row.push(cell);
         }
         newtable.push(row);
@@ -586,7 +617,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         let colcount = this.getColCount();
         for (let row = 0; row < this.getRowCount(); row++) {
-            let cell = new CellDetails(new TablePoint(row, colcount), this.props.prefillcells ? undefined : "");
+            let cell = new CellDetails(new TablePoint(row, colcount), this.state.prefillcellscheck ? undefined : "");
             newtable[row].push(cell);
         }
         this.addTableStateToUndoStack();
@@ -859,7 +890,7 @@ class MyTable extends React.Component<Props, TableState> {
 
             let children_p = root.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
             let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
-            children_cells.forEach(child_cell => child_cell.setBackgroundColour(this.chosencolour));
+            children_cells.forEach(child_cell => child_cell.setBackgroundColour(root.getHexBackgroundColour()));
 
             let newtable = cloneDeep(this.state.table);
             this.setState({ table: newtable });
@@ -1030,7 +1061,8 @@ class MyTable extends React.Component<Props, TableState> {
         let latexpackages = "\\usepackage[utf8]{inputenc}\n";
         latexpackages += "\\usepackage[table,xcdraw]{xcolor}\n";
         latexpackages += "\\usepackage{multicol}\n";
-        latexpackages += "\\usepackage{multirow}";
+        latexpackages += "\\usepackage{multirow}\n";
+        latexpackages += "\\usepackage{makecell}";
 
         return (
             <div>
@@ -1070,8 +1102,10 @@ class MyTable extends React.Component<Props, TableState> {
         //dangerous TODO: maybe remove live html
         return (
             <div>
-                <div dangerouslySetInnerHTML={{ __html: html }} className="html-table-displaybox" />
                 <textarea readOnly={true} rows={10} cols={15} className="latex-box" id="htmltextarea" ref={this.htmltextarearef} value={html} />
+                <Button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy to clipboard</Button>
+                <div dangerouslySetInnerHTML={{ __html: html }} className="html-table-displaybox" />
+                
             </div>
         );
     }
@@ -1111,6 +1145,35 @@ class MyTable extends React.Component<Props, TableState> {
             </div>
 
         );
+    }
+
+
+    private copyAsCSVToClipboard(){
+        let copyText = document.getElementById("csvtextarea")! as HTMLTextAreaElement;
+        copyText.className = "show";
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+        let sel = document.getSelection();
+        sel!.removeAllRanges();
+        copyText.className = "hide";
+    }
+
+    private getCSVContent() {
+        let tabledata = this.state.table.map(row => row.map(cell => cell.getData()));
+        //let jsonrows = tabledata.map(row => JSON.stringify(row));
+        //let jsonarray = JSON.stringify(jsonrows);
+        let csvstring = Papa.unparse(tabledata);//Papa.unparse(JSON.stringify(jsonarray));
+
+        return (
+            <div>
+                <textarea readOnly={true} rows={10} cols={15} id="csvtextarea" className="hide" value={csvstring}/>
+                <h4>Copy CSV Table Data to your Clipboard</h4>
+                <Button className="table-buttons" type="button" onClick={() => this.copyAsCSVToClipboard()}>Copy</Button>
+            </div>
+        );
+        
+        
     }
 
     /*
@@ -1364,20 +1427,28 @@ class MyTable extends React.Component<Props, TableState> {
                 return (
                     <div id="HTMLDiv">
                         {this.convertToHTML()}
-                        <Button className="table-buttons" type="button" onClick={() => this.copyHTML()}>Copy to clipboard</Button>
+                        
                     </div>
                 );
             case 2:
                 return (
                     <div id="TextDiv">
-                        {this.convertToText()}
                         <Button className="table-buttons" type="button" onClick={() => this.copyText()}>Copy to clipboard</Button>
+                        {this.convertToText()}
+                        
                     </div>
                 );
             case 3:
                 return (
                     <div id="PNGDiv">
+                        <h4>Open Table as PNG Image in a new tab</h4>
                         <Button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Generate PNG</Button>
+                    </div>
+                );
+            case 4:
+                return (
+                    <div id="CSVDiv">
+                        {this.getCSVContent()}
                     </div>
                 );
             case 0:
@@ -1439,7 +1510,7 @@ class MyTable extends React.Component<Props, TableState> {
             for (let row = 0; row < rows; row++) {
                 let rowarray: CellDetails[] = [];
                 for (let col = 0; col < cols; col++) {
-                    let cell = new CellDetails(new TablePoint(row, col), this.props.prefillcells ? undefined : "");
+                    let cell = new CellDetails(new TablePoint(row, col), this.state.prefillcellscheck ? undefined : "");
                     rowarray.push(cell);
                 }
                 newtable.push(rowarray);
@@ -1523,8 +1594,51 @@ class MyTable extends React.Component<Props, TableState> {
 
     private stateToJSON() : string{
         let json = JSON.stringify(this.state, null, '   ');
+        console.log(json);
         return json;
     }
+
+    private async saveTable(){
+        let formData = new FormData();
+        formData.append("username", this.state.username);
+        formData.append("password", this.state.password);
+        formData.append("tablejson", JSON.stringify(this.state.table));
+        formData.append("tablename", this.state.currenttablename);
+
+        let request = await fetch('DB/InsertTable', {
+            method: 'POST',
+            headers: {
+            },
+            body: formData
+        });
+        let response = await request.json();
+        if (!response){
+            alert("Couldn't save table");
+        }
+        this.getMyTables();
+    }
+
+
+    private async deleteTable(id: string) {
+        let formData = new FormData();
+        formData.append("username", this.state.username);
+        formData.append("password", this.state.password);
+        formData.append("tableid", id);
+
+        let request = await fetch('DB/DeleteTable', {
+            method: 'POST',
+            headers: {
+            },
+            body: formData
+        });
+        let response = await request.json();
+        if (!response) {
+            alert("Couldn't delete table");
+        }
+        this.getMyTables();
+    }
+
+    
 
     private importJSONState(jsonstate: string){
         let newstate: TableState = JSON.parse(jsonstate);
@@ -1770,34 +1884,262 @@ class MyTable extends React.Component<Props, TableState> {
         return table;
     }
 
+
+    private async getMyTables(){
+        let formData = new FormData();
+        formData.append(this.state.username, "");
+        formData.append(this.state.password, "");
+
+        let request = await fetch('DB/GetMyTables', {
+            method: 'POST',
+            headers: {
+            },
+            body: formData
+        });
+        let response = await request.json();
+        let tables: [string, string][] = [];
+        //let t = response[0]["Item1"];
+        response.forEach(
+            (item: any) => {
+                tables.push([item["Item1"], item["Item2"]])
+            }
+        )
+        
+        this.setState({ mytables: tables });
+        //loop through and add ot state.
+        
+    }
+
+    private showMyTables(){
+        return (
+            <List>
+                {this.state.mytables.map(
+                    (table) => 
+                        <ListItem>
+                            <ListItemText>{table[1]}</ListItemText>
+                            <Button onClick={() => this.getTable(table[0])}>Load</Button>
+                            <Button onClick={() => this.deleteTable(table[0])}>Delete</Button>
+                        </ListItem>
+                    
+                )
+                }
+            </List>
+        );
+    }
+
+    private async getTable(tableid: string){
+        let formData = new FormData();
+        formData.append(this.state.username, "");
+        formData.append(this.state.password,"");
+        formData.append(tableid, "");
+        
+        let request = await fetch('DB/GetTable', {
+            method: 'POST',
+            headers: {
+            },
+            body: formData
+        });
+        let responsetable = await request.json() as CellDetails[][];
+        //let responsetable: CellDetails[][] = JSON.parse(response);
+
+        /*console.log("hi");
+        for (let row = 0; row < responsetable.length; row++) {
+            for (let col = 0; col < responsetable[0].length; col++) {
+                let cell = responsetable[row][col];
+                let p: TablePoint = plainToClass(TablePoint, cell.p);
+                cell.p = p;
+                responsetable[row][col] = plainToClass(CellDetails, cell); //Convert the cell to an instance of the cell class.
+            }
+        }*/
+        for (let row = 0; row < responsetable.length; row++) {
+            for (let col = 0; col < responsetable[0].length; col++) {
+                let cell = responsetable[row][col];
+                let p: TablePoint = plainToClass(TablePoint, cell.p);
+                cell.p = p;
+                responsetable[row][col] = plainToClass(CellDetails, cell); //Convert the cell to an instance of the cell class.
+            }
+            //responsetable[row] = plainToClass((CellDetails[]), responsetable[row]);
+        }
+        //responsetable = plainToClass(CellDetails[][], responsetable);
+
+
+        this.setState({ table: responsetable})
+        //this.setState({ table: responsetable as CellDetails[][] });
+    }
+
+    private getTabBar(){
+        if (this.state.showoutput){
+            return (
+                <div id="outputdiv">
+                    <AppBar position="static" >
+                        <Tabs id="tabbar" variant="scrollable" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
+                            <Tab label="LaTeX" tabIndex={0}/>
+                            <Tab label="HTML" tabIndex={1}/>
+                            <Tab label="Text" tabIndex={2}/>
+                            <Tab label="PNG" tabIndex={3}/>
+                            <Tab label="CSV" tabIndex={4}/>
+                        </Tabs>
+                    </AppBar>
+                    <div id="tabContentDiv">
+                        {this.getTabContent()}
+                    </div>
+                </div>
+
+            );
+        }
+    }
+
+    private setTableStyle(style: number){
+        this.addTableStateToUndoStack();
+
+        //Clear the current style
+        this.getAllCells().forEach(
+            cell => {
+                cell.setBackgroundColour("");
+                cell.setBorderStyle(["none", "none", "none", "none"]);
+            })
+        //Set new style
+        switch(style){
+            case 1:
+                this.setSimpleLinesStyle();
+                break;
+            case 2:
+                this.setAlternateShadingStyle();
+                break;
+            case 3:
+                this.setSimpleLinesStyle();
+                this.setAlternateShadingStyle();
+                break;
+        }
+        let newtable = cloneDeep(this.state.table);
+        this.setState({table: newtable});
+    }
+
+    private setSimpleLinesStyle(){
+        if (this.state.table.length > 1 && this.state.table[0].length > 1){
+            let row0 = this.getRow(0);
+            let row1 = this.getRow(1);
+            let col0 = this.getCol(0);
+            let col1 = this.getCol(1);
+            row0.forEach(
+                cell => {
+                    cell.setBorderStyle(["none", "none", "solid", "none"]);
+                })
+            row1.forEach(
+                cell => {
+                    cell.setBorderStyle(["solid", "none", "none", "none"]);
+                })
+            col0.forEach(
+                cell => {
+                    cell.setBorderStyle(["none", "solid", "none", "none"]);
+                })
+            col1.forEach(
+                cell => {
+                    cell.setBorderStyle(["none", "none", "none", "solid"]);
+                })
+            this.state.table[0][0].setBorderStyle(["none", "solid", "solid", "none"])
+            this.state.table[0][1].setBorderStyle(["none", "none", "solid", "solid"])
+            
+        }
+    }
+
+    private setAlternateShadingStyle() {
+        for (let i = 1; i < this.state.table.length; i = i + 2){
+            console.log("test");
+            let row = this.getRow(i);
+            row.forEach (
+                cell => {
+                    cell.setBackgroundColour("#D4D4D4");
+                }
+            )
+        }
+    }
+
     public render() {
         return (
             <div className="adiv">
                 <Drawer anchor="left" variant="permanent" open={true}>
                     <List>
+                        <ListItem>
+                            <Button onClick={() => this.setState({showaccountdialog: !this.state.showaccountdialog})}>My Account</Button>
+                            <Dialog open={this.state.showaccountdialog} aria-labelledby="simple-dialog-title" onClose={() => this.setState({showaccountdialog: false})} >
+                                <DialogTitle id="simple-dialog-title">Account</DialogTitle>
+                                <List>
+                                    <ListItem>
+                                        <ListItemText primary="Username"/>
+                                        <input value={this.state.username} onChange={(e) => this.setState({username: e.target.value})} type="text"/>
+                                    </ListItem>
+                                    <ListItem>
+                                        <ListItemText primary="Password"/>
+                                        <input value={this.state.password} onChange={(e) => this.setState({password: e.target.value})} type="password"/>
+                                    </ListItem>
+
+                                    <ListItem>
+                                        <ListItemText primary="Save Current Table" />
+                                        <input value={this.state.currenttablename} className="tablesavetextbox" onChange={(e) => this.setState({ currenttablename: e.target.value })} type="text" />
+                                        <Button onClick={() => this.saveTable()}>Save</Button>
+                                    </ListItem>
+
+                                    <ListItem>
+                                        <Button onClick={() => this.getMyTables()}>Fetch My Tables</Button>
+                                    </ListItem>
+                                    {
+                                        this.showMyTables()
+                                    }
+
+                                </List>
+                            </Dialog>
+                        </ListItem>
+
+                        <ListItem>
+                            <Button onClick={() => this.setState({showoutput: !this.state.showoutput})}>Toggle Output Panel</Button>
+                        </ListItem>
+
+                        <ListItem>
+                            <ListItemText primary={"Rows: " + this.state.table.length} />
+                            <ListItemText primary={"Cols: " + this.state.table[0].length} />
+                        </ListItem>
+
                         <ListItem divider />
                         <ListItem divider>
-                            <b>New Table</b>
+                            <b>Create Table</b>
                         </ListItem>
 
-                        <ListItem >
-                            <div>
-                                <label htmlFor="rowsinput">Rows </label>
-                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setTableFormValues(parseInt(e.target.value), this.state.newtableform[1])}/>
-                                <label htmlFor="rowsinput">Cols </label>
-                                <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setTableFormValues(this.state.newtableform[0], parseInt(e.target.value))}/>
-                                <Button onClick={() => this.createNewTable(this.state.newtableform[0], this.state.newtableform[1], false)}>Create</Button>
-                            </div>
+                        
+
+                        <ListItem>
+                            <ListItemText primary="Rows"/>
+                            <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setTableFormValues(parseInt(e.target.value), this.state.newtableform[1])}/>
                         </ListItem>
 
+                        <ListItem>
+                            <ListItemText primary="Cols"/>
+                            <input type="number" id="colsinput" name="colsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setTableFormValues(this.state.newtableform[0], parseInt(e.target.value))}/>
+                        </ListItem>    
+
+                        <ListItem>
+                            <ListItemText primary="Prefill Cells with Coordinates"/>
+                            <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
+                        </ListItem>
+
+                        <ListItem>
+                                <Button onClick={() => this.createNewTable(this.state.newtableform[0], this.state.newtableform[1], false)}>Create Table</Button>
+                        </ListItem>
+
+                        <ListItem divider/>
+                        <ListItem divider>
+                            <b>Import Table Data</b>
+                        </ListItem>
+                        
                         <ListItem className="listitemtitle">
                             Upload Table Image
                         </ListItem>
+                        
                         <ListItem className="listitemtitle">
                             <input type="file" id="file" accept="image/*" />
                             <Button onClick={() => this.UploadTable()}>Upload</Button>
                         </ListItem>
-
+                        <Divider component="li" variant="middle" />
                         <ListItem button onClick={() => this.parseCSVFromClipboard()}>Import CSV from clipboard</ListItem>
 
                         <ListItem divider />
@@ -1807,17 +2149,33 @@ class MyTable extends React.Component<Props, TableState> {
                         
                         <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
                         <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
+                        <ListItem>
+                            <ListItemText primary="Prefill Cells with Coordinates"/>
+                            <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
+                        </ListItem>
+
+                        <Divider component="li" variant="middle" />
                         <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
                         <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
-
+                        <Divider component="li" variant="middle" />
                         <ListItem button onClick={() => this.undo()}>Undo</ListItem>
                         <ListItem button onClick={() => this.redo()}>Redo</ListItem>
 
+                        <ListItem divider />
 
-                        <ListItem button onClick={() => jsonstate = this.stateToJSON()}>Save state temp</ListItem>
-                        <ListItem button onClick={() => this.importJSONState(jsonstate)}>Restore state temp</ListItem>
-
-                        
+                        <ListItem divider>
+                            <b>Table Styles</b>
+                        </ListItem>
+                        <ListItem button onClick={() => this.setTableStyle(1)}>
+                            Style 1
+                        </ListItem>
+                        <ListItem button onClick={() => this.setTableStyle(2)}>
+                            Style 2
+                        </ListItem>
+                        <ListItem button onClick={() => this.setTableStyle(3)}>
+                            Style 3
+                        </ListItem>
+                            
 
                         <ListItem divider />
 
@@ -1827,6 +2185,7 @@ class MyTable extends React.Component<Props, TableState> {
 
                         <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
                         <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
+                        <Divider component="li" variant="middle" />
 
                         <ListItem >
                             <div>
@@ -1838,6 +2197,8 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.setSelectedCellData("")}>
                             <ListItemText primary="Clear Data"/>
                         </ListItem>
+
+                        <Divider component="li" variant="middle" />
                         
                         <ListItem id="mergebutton" button onClick={() => this.mergeCells()}>
                             <ListItemText primary="Merge" secondary="Combine the selected cells into one"/>
@@ -1845,6 +2206,8 @@ class MyTable extends React.Component<Props, TableState> {
                         <ListItem button onClick={() => this.splitCells()}>
                             <ListItemText primary="Split" secondary="Undo a merge"/>
                         </ListItem>
+
+                        <Divider component="li" variant="middle" />
                         <ListItem>
                             Colour
                             <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} className="colour-picker"/>
@@ -1860,29 +2223,41 @@ class MyTable extends React.Component<Props, TableState> {
                             <ListItemText primary="Set cell text to this colour" />
                         </ListItem>
 
+                        <Divider component="li" variant="middle" />
+
                         <ListItem>
-                            <ListItemText primary="Move "/>
+                            <ListItemText primary="Move Selected Cells"/>
+                        </ListItem>
+                        <ListItem>
                             <Button id="movecellsupbutton" onClick={() => this.moveSelectedCells(Direction.Up)}>Up</Button>
                             <Button id="movecellsdownbutton" onClick={() => this.moveSelectedCells(Direction.Down)}>Down</Button>
                             <Button id="movecellsleftbutton" onClick={() => this.moveSelectedCells(Direction.Left)}>Left</Button>
                             <Button id="movecellsrightbutton" onClick={() => this.moveSelectedCells(Direction.Right)}>Right</Button>
                         </ListItem>
+                        <Divider component="li" variant="middle" />
 
                         <ListItem>
-                            <ListItemText primary="Horizontal Text Alignment:"/>
+                            <ListItemText primary="Horizontal Text Alignment"/>
+                        </ListItem>
+
+                        <ListItem>
                             <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
                             <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
                         </ListItem>
 
-
+                        <Divider component="li" variant="middle" />
                         <ListItem>
                             <ListItemText primary="Vertical Text Alignment:"/>
+                        </ListItem>
+
+                        <ListItem>
                             <Button onClick={() => this.setVerticalTextAlignment("top")}>Top</Button>
                             <Button onClick={() => this.setVerticalTextAlignment("middle")}>Middle</Button>
                             <Button onClick={() => this.setVerticalTextAlignment("bottom")}>Bottom</Button>
                         </ListItem>
 
+                        <Divider component="li" variant="middle" />
                         <ListItem>
                             <ListItemText primary="Choose which borders to modify"/>
                         </ListItem>
@@ -1923,21 +2298,11 @@ class MyTable extends React.Component<Props, TableState> {
 
 
             {this.drawTable()}
-
-            <div id="outputdiv">
-                <AppBar position="static">
-                    <Tabs id="tabbar" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
-                        <Tab label="LaTeX" tabIndex={0}/>
-                        <Tab label="HTML" tabIndex={1}/>
-                        <Tab label="Text" tabIndex={2}/>
-                        <Tab label="PNG" tabIndex={3}/>
-                    </Tabs>
-                </AppBar>
-                <div id="tabContentDiv">
-                    {this.getTabContent()}
-                </div>
-                    
-            </div>
+            
+            {
+                this.getTabBar()
+            }
+            
                 
             </div>
         );
