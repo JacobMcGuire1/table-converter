@@ -54,6 +54,7 @@ type TableState = {
     showaccountdialog: boolean;
     currenttablename: string;
     showoutput: boolean;
+    topmenutab: number;
 }
 //
 function escapeLatex(str: string){
@@ -501,6 +502,7 @@ class MyTable extends React.Component<Props, TableState> {
             showaccountdialog: false,
             currenttablename: "A table",
             showoutput: true,
+            topmenutab: 0,
         };
         this.testPopulateTable();
     }
@@ -1321,13 +1323,14 @@ class MyTable extends React.Component<Props, TableState> {
         //};
     }
 
+
     /*
      * Draws the current representation of the table.
      */
     private drawTable() {
         return (
-            <div className="maintablediv" onClick={(e) => this.bigClick(e)}>
-                <svg ref={this.svgref} width="9000px" height="9000px" id="svg" onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
+            <div onKeyDown={(e) => this.handleKeyPress(e)} className="maintablediv" onClick={(e) => this.bigClick(e)}>
+                <svg ref={this.svgref} width="9000px" height="9000px" id="svg"  onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
                     <foreignObject x="0%" y="0%" width="100%" height="100%">
                         <table ref={this.tableref} className="maintable">
                             <tbody>
@@ -1416,7 +1419,10 @@ class MyTable extends React.Component<Props, TableState> {
 
     private changeTab(e: React.ChangeEvent<{}>, v: any) {
         this.setState({ tab: (v as number) });
-        this.uploadIMG();
+    }
+
+    private changeTab2(e: React.ChangeEvent<{}>, v: any) {
+        this.setState({ topmenutab: (v as number) });
     }
 
     
@@ -1460,19 +1466,6 @@ class MyTable extends React.Component<Props, TableState> {
                     </div>
                 );
         }             
-    }
-
-    private async uploadIMG() {
-        var test = await fetch('TableImageOCR/UploadTable', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: "45"
-        });
-        const data2 = await test.json();
-        console.log(data2);
     }
 
     private async UploadTable() {
@@ -1915,7 +1908,7 @@ class MyTable extends React.Component<Props, TableState> {
             <List>
                 {this.state.mytables.map(
                     (table) => 
-                        <ListItem>
+                        <ListItem key={parseInt(table[0])}>
                             <ListItemText>{table[1]}</ListItemText>
                             <Button onClick={() => this.getTable(table[0])}>Load</Button>
                             <Button onClick={() => this.deleteTable(table[0])}>Delete</Button>
@@ -1976,7 +1969,7 @@ class MyTable extends React.Component<Props, TableState> {
                             <Tab label="LaTeX" tabIndex={0} style={{minWidth:"20%"}}/>
                             <Tab label="HTML" tabIndex={1} style={{minWidth:"20%"}}/>
                             <Tab label="Text" tabIndex={2} style={{minWidth:"20%"}}/>
-                            <Tab label="PNG" tabIndex={3} style={{minWidth:"20%"}}/>
+                           {/* <Tab label="PNG" tabIndex={3} style={{minWidth:"20%"}}/>*/}
                             <Tab label="CSV" tabIndex={4} style={{minWidth:"20%"}}/>
                         </Tabs>
                     </AppBar>
@@ -1986,6 +1979,328 @@ class MyTable extends React.Component<Props, TableState> {
                 </div>
 
             );
+        }
+    }
+
+    private getControlsTabBar(){
+        return (
+            <div >
+                <AppBar position="static" >
+                    <Tabs id="tabbar" variant="scrollable" value={this.state.topmenutab} onChange={(e,v) => this.changeTab2(e,v)}>
+                        <Tab label="Create/Save Table" tabIndex={0} style={{minWidth:"20%"}}/>
+                        <Tab label="Import Table" tabIndex={1} style={{minWidth:"20%"}}/>
+                        <Tab label="Global Controls" tabIndex={2} style={{minWidth:"20%"}}/>
+                        <Tab label="Selected Cell Controls" tabIndex={3} style={{minWidth:"20%"}}/>
+                    </Tabs>
+                </AppBar>
+                <div id="controlTabContentDiv">
+                    {this.getTopMenuTabContent()}
+                </div>
+            </div>
+
+        );
+
+    }
+
+    private getTopMenuTabContent(){
+        switch(this.state.topmenutab) {
+            case 0:
+                return (
+                    <div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem>
+                                    <Button onClick={() => this.setState({showaccountdialog: !this.state.showaccountdialog})}>Access My Account</Button>
+                                    <Dialog open={this.state.showaccountdialog} aria-labelledby="simple-dialog-title" onClose={() => this.setState({showaccountdialog: false})} >
+                                        <DialogTitle id="simple-dialog-title">Account</DialogTitle>
+                                        <List>
+                                            <ListItem>
+                                                <ListItemText primary="Username"/>
+                                                <input value={this.state.username} onChange={(e) => this.setState({username: e.target.value})} type="text"/>
+                                            </ListItem>
+                                            <ListItem>
+                                                <ListItemText primary="Password"/>
+                                                <input value={this.state.password} onChange={(e) => this.setState({password: e.target.value})} type="password"/>
+                                            </ListItem>
+
+                                            <ListItem>
+                                                <ListItemText primary="Save Current Table" />
+                                                <input value={this.state.currenttablename} className="tablesavetextbox" onChange={(e) => this.setState({ currenttablename: e.target.value })} type="text" />
+                                                <Button onClick={() => this.saveTable()}>Save</Button>
+                                            </ListItem>
+
+                                            <ListItem>
+                                                <Button onClick={() => this.getMyTables()}>Fetch My Tables</Button>
+                                            </ListItem>
+                                            {
+                                                this.showMyTables()
+                                            }
+
+                                        </List>
+                                    </Dialog>
+                                </ListItem>
+
+                                <ListItem>
+                                    <Button onClick={() => this.setState({showoutput: !this.state.showoutput})}>Toggle Output Display</Button>
+                                </ListItem>
+                                <Divider component="li" variant="middle" />
+
+                                <ListItem>
+                                    <ListItemText primary={"Rows: " + this.state.table.length} />
+                                    <ListItemText primary={"Cols: " + this.state.table[0].length} />
+                                </ListItem>
+
+                                <Divider component="li" variant="middle" />
+                                <ListItem>
+                                    <Button onClick={() => this.undo()}>Undo</Button>
+                                    <Button onClick={() => this.redo()}>Redo</Button>
+                                </ListItem>
+                                
+                                
+                            </List>
+                        </div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Create Table</b>
+                                </ListItem>
+                                <ListItem>
+                                    <ListItemText primary="Rows"/>
+                                    <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setTableFormValues(parseInt(e.target.value), this.state.newtableform[1])}/>
+                                </ListItem>
+
+                                <ListItem>
+                                    <ListItemText primary="Cols"/>
+                                    <input type="number" id="colsinput" name="colsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setTableFormValues(this.state.newtableform[0], parseInt(e.target.value))}/>
+                                </ListItem>    
+
+                                <ListItem>
+                                    <ListItemText primary="Prefill Cells"/>
+                                    <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
+                                </ListItem>
+
+                                <ListItem>
+                                        <Button onClick={() => this.createNewTable(this.state.newtableform[0], this.state.newtableform[1], false)}>Create Table</Button>
+                                </ListItem>
+                            </List>
+
+                        </div>
+                    </div>
+                    
+
+                );
+            case 1:
+                return (
+                    <List dense={true}>
+                            <ListItem divider>
+                                <b>Import Table Data</b>
+                            </ListItem>
+                            
+                            <ListItem className="listitemtitle">
+                                Upload Table Image
+                            </ListItem>
+                            
+                            <ListItem >
+                                <input type="file" id="file" accept="image/*"/>
+                            </ListItem>
+                            <ListItem>
+                                <Button onClick={() => this.UploadTable()}>Upload</Button>
+                            </ListItem>
+                            <Divider component="li" variant="middle" />
+                            <ListItem button onClick={() => this.parseCSVFromClipboard()}>Import CSV from clipboard</ListItem>
+                        </List>
+
+                );
+            case 2:
+                return (
+                    <div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Global Controls</b>
+                                </ListItem>
+                                
+                                <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
+                                <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
+                                <ListItem>
+                                    <ListItemText primary="Prefill Cells"/>
+                                    <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
+                                </ListItem>
+
+                                <Divider component="li" variant="middle" />
+                                <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
+                                <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
+                                
+                            </List>
+
+                        </div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Styles</b>
+                                </ListItem>
+                                <ListItem button onClick={() => this.setTableStyle(1)}>
+                                    Simple Lines
+                                </ListItem>
+                                <ListItem button onClick={() => this.setTableStyle(2)}>
+                                    Alternate Shading
+                                </ListItem>
+                                <ListItem button onClick={() => this.setTableStyle(3)}>
+                                    Simple Lines + Alternate Shading
+                                </ListItem>
+                            </List>
+                        </div>
+
+                    </div>
+                    
+
+                );
+            case 3:
+                return (
+                    <div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Selected Cell Controls</b>
+                                </ListItem>
+
+                                <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
+                                <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
+                                <Divider component="li" variant="middle" />
+
+
+
+                                <ListItem >
+                                    <div>
+                                        <input style={{width: "100px"}} type="text" id="celltextinput" name="celltextinput" value={this.state.changedatafield} onChange={(e) => this.setState({changedatafield: e.target.value})}/>
+                                        <Button onClick={() => this.setSelectedCellData(this.state.changedatafield)}>Set Data</Button>
+                                    </div>
+                                </ListItem>
+
+                                <ListItem button onClick={() => this.setSelectedCellData("")}>
+                                    <ListItemText primary="Clear Data"/>
+                                </ListItem>
+                            </List>
+                        </div>
+                        <div className="minimenudiv">
+                            <ListItem divider>
+                                <b>Merge/Move Cells</b>
+                            </ListItem>
+                            <List dense={true}>
+                                <ListItem id="mergebutton" button onClick={() => this.mergeCells()}>
+                                    <ListItemText primary="Merge"/>
+                                </ListItem>
+                                <ListItem button onClick={() => this.splitCells()}>
+                                    <ListItemText primary="Split"/>
+                                </ListItem>
+                                <Divider component="li" variant="middle" />
+                                <ListItem>
+                                    <ListItemText primary="Move Selected Cells"/>
+                                </ListItem>
+                                <ListItem>
+                                    <Button className="smallButton" size="small" id="movecellsupbutton" onClick={() => this.moveSelectedCells(Direction.Up)}>Up</Button>
+                                    <Button className="smallButton" size="small" id="movecellsdownbutton" onClick={() => this.moveSelectedCells(Direction.Down)}>Down</Button>
+                                    <Button className="smallButton" size="small" id="movecellsleftbutton" onClick={() => this.moveSelectedCells(Direction.Left)}>Left</Button>
+                                    <Button className="smallButton" size="small" id="movecellsrightbutton" onClick={() => this.moveSelectedCells(Direction.Right)}>Right</Button>
+                                </ListItem>
+
+
+                            </List>
+                        </div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Colour</b>
+                                </ListItem>
+                                <ListItem>
+                                    Colour
+                                    <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} className="colour-picker"/>
+                                </ListItem>
+                                <ListItem button onClick={() => this.setCellBackgroundColours()}>
+                                    <ListItemText primary="Set backgrounds to this colour" />
+                                </ListItem>
+                                <ListItem button onClick={() => this.setCellBorderColours()}>
+                                    <ListItemText primary="Set borders to this colour" />
+                                </ListItem>
+
+                                <ListItem button onClick={() => this.setCellTextColours()}>
+                                    <ListItemText primary="Set text to this colour" />
+                                </ListItem>
+
+                                
+                                
+
+                                
+                            </List>
+                        </div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Text Align</b>
+                                </ListItem>
+                                <ListItem>
+                                    <ListItemText primary="Horizontal"/>
+                                </ListItem>
+
+                                <ListItem>
+                                    <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
+                                    <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
+                                    <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
+                                </ListItem>
+
+                                <Divider component="li" variant="middle" />
+                                <ListItem>
+                                    <ListItemText primary="Vertical Text Alignment:"/>
+                                </ListItem>
+
+                                <ListItem>
+                                    <Button onClick={() => this.setVerticalTextAlignment("top")}>Top</Button>
+                                    <Button onClick={() => this.setVerticalTextAlignment("middle")}>Middle</Button>
+                                    <Button onClick={() => this.setVerticalTextAlignment("bottom")}>Bottom</Button>
+                                </ListItem>
+
+                                
+
+                            </List>
+                        </div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                            <ListItem divider>
+                                    <b>Modify Borders</b>
+                                </ListItem>
+                            <ListItem>
+                                    <ToggleButtonGroup>
+                                        <ToggleButton value="top" size="small" selected={this.state.bordermodify[0]}  onClick={(e) => this.selectBorderToModify(0)}>
+                                            Top
+                                        </ToggleButton>
+                                        <ToggleButton value="right" size="small" selected={this.state.bordermodify[1]}  onClick={(e) => this.selectBorderToModify(1)}>
+                                            Right
+                                        </ToggleButton>
+                                        <ToggleButton value="bottom" size="small" selected={this.state.bordermodify[2]}  onClick={(e) => this.selectBorderToModify(2)}>
+                                            Bottom
+                                        </ToggleButton>
+                                        <ToggleButton value="left" size="small" selected={this.state.bordermodify[3]}  onClick={(e) => this.selectBorderToModify(3)}>
+                                            Left
+                                        </ToggleButton>
+                                    </ToggleButtonGroup>
+                                </ListItem>
+
+                                <ListItem>
+                                    <ListItemText primary="Border Style:" />
+                                    <select name="chooseborderstyle" onChange={(e) => this.chooseBorderStyle(e)}>
+                                        <option value="solid">Solid</option>
+                                        <option value="dotted">Dotted</option>
+                                        <option value="dashed">Dashed</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                </ListItem>
+
+                            </List>
+                        </div>
+                    </div>
+
+                );
+
         }
     }
 
@@ -2058,241 +2373,31 @@ class MyTable extends React.Component<Props, TableState> {
     public render() {
         return (
             <div className="adiv">
-                <Drawer anchor="left" variant="permanent" open={true}>
-                    <List>
-                        <ListItem>
-                            <Button onClick={() => this.setState({showaccountdialog: !this.state.showaccountdialog})}>My Account</Button>
-                            <Dialog open={this.state.showaccountdialog} aria-labelledby="simple-dialog-title" onClose={() => this.setState({showaccountdialog: false})} >
-                                <DialogTitle id="simple-dialog-title">Account</DialogTitle>
-                                <List>
-                                    <ListItem>
-                                        <ListItemText primary="Username"/>
-                                        <input value={this.state.username} onChange={(e) => this.setState({username: e.target.value})} type="text"/>
-                                    </ListItem>
-                                    <ListItem>
-                                        <ListItemText primary="Password"/>
-                                        <input value={this.state.password} onChange={(e) => this.setState({password: e.target.value})} type="password"/>
-                                    </ListItem>
 
-                                    <ListItem>
-                                        <ListItemText primary="Save Current Table" />
-                                        <input value={this.state.currenttablename} className="tablesavetextbox" onChange={(e) => this.setState({ currenttablename: e.target.value })} type="text" />
-                                        <Button onClick={() => this.saveTable()}>Save</Button>
-                                    </ListItem>
+                <div id={this.state.showoutput ? "topdiv": "topdivwide"}>
+                    
+                
+                    
 
-                                    <ListItem>
-                                        <Button onClick={() => this.getMyTables()}>Fetch My Tables</Button>
-                                    </ListItem>
-                                    {
-                                        this.showMyTables()
-                                    }
-
-                                </List>
-                            </Dialog>
-                        </ListItem>
-
-                        <ListItem>
-                            <Button onClick={() => this.setState({showoutput: !this.state.showoutput})}>Toggle Output Panel</Button>
-                        </ListItem>
-
-                        <ListItem>
-                            <ListItemText primary={"Rows: " + this.state.table.length} />
-                            <ListItemText primary={"Cols: " + this.state.table[0].length} />
-                        </ListItem>
-
-                        <ListItem divider />
-                        <ListItem divider>
-                            <b>Create Table</b>
-                        </ListItem>
-
+                    {
+                        this.getControlsTabBar()
+                    }
                         
+                    
+                    
 
-                        <ListItem>
-                            <ListItemText primary="Rows"/>
-                            <input type="number" id="rowsinput" name="rowsinput" min="1" max="30" value={this.state.newtableform[0]} onChange={(e) => this.setTableFormValues(parseInt(e.target.value), this.state.newtableform[1])}/>
-                        </ListItem>
+                    
 
-                        <ListItem>
-                            <ListItemText primary="Cols"/>
-                            <input type="number" id="colsinput" name="colsinput" min="1" max="30" value={this.state.newtableform[1]} onChange={(e) => this.setTableFormValues(this.state.newtableform[0], parseInt(e.target.value))}/>
-                        </ListItem>    
+                    
 
-                        <ListItem>
-                            <ListItemText primary="Prefill Cells with Coordinates"/>
-                            <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
-                        </ListItem>
+                    
 
-                        <ListItem>
-                                <Button onClick={() => this.createNewTable(this.state.newtableform[0], this.state.newtableform[1], false)}>Create Table</Button>
-                        </ListItem>
+                    
 
-                        <ListItem divider/>
-                        <ListItem divider>
-                            <b>Import Table Data</b>
-                        </ListItem>
-                        
-                        <ListItem className="listitemtitle">
-                            Upload Table Image
-                        </ListItem>
-                        
-                        <ListItem className="listitemtitle">
-                            <input type="file" id="file" accept="image/*" />
-                            <Button onClick={() => this.UploadTable()}>Upload</Button>
-                        </ListItem>
-                        <Divider component="li" variant="middle" />
-                        <ListItem button onClick={() => this.parseCSVFromClipboard()}>Import CSV from clipboard</ListItem>
+                    
+                    
+                </div>
 
-                        <ListItem divider />
-                        <ListItem divider>
-                            <b>Global Controls</b>
-                        </ListItem>
-                        
-                        <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
-                        <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
-                        <ListItem>
-                            <ListItemText primary="Prefill Cells with Coordinates"/>
-                            <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
-                        </ListItem>
-
-                        <Divider component="li" variant="middle" />
-                        <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
-                        <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
-                        <Divider component="li" variant="middle" />
-                        <ListItem button onClick={() => this.undo()}>Undo</ListItem>
-                        <ListItem button onClick={() => this.redo()}>Redo</ListItem>
-
-                        <ListItem divider />
-
-                        <ListItem divider>
-                            <b>Table Styles</b>
-                        </ListItem>
-                        <ListItem button onClick={() => this.setTableStyle(1)}>
-                            Style 1
-                        </ListItem>
-                        <ListItem button onClick={() => this.setTableStyle(2)}>
-                            Style 2
-                        </ListItem>
-                        <ListItem button onClick={() => this.setTableStyle(3)}>
-                            Style 3
-                        </ListItem>
-                            
-
-                        <ListItem divider />
-
-                        <ListItem divider>
-                            <b>Selected Cell Controls</b>
-                        </ListItem>
-
-                        <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
-                        <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
-                        <Divider component="li" variant="middle" />
-
-                        <ListItem >
-                            <div>
-                                <input type="text" id="celltextinput" name="celltextinput" value={this.state.changedatafield} onChange={(e) => this.setState({changedatafield: e.target.value})}/>
-                                <Button onClick={() => this.setSelectedCellData(this.state.changedatafield)}>Set Data</Button>
-                            </div>
-                        </ListItem>
-
-                        <ListItem button onClick={() => this.setSelectedCellData("")}>
-                            <ListItemText primary="Clear Data"/>
-                        </ListItem>
-
-                        <Divider component="li" variant="middle" />
-                        
-                        <ListItem id="mergebutton" button onClick={() => this.mergeCells()}>
-                            <ListItemText primary="Merge" secondary="Combine the selected cells into one"/>
-                        </ListItem>
-                        <ListItem button onClick={() => this.splitCells()}>
-                            <ListItemText primary="Split" secondary="Undo a merge"/>
-                        </ListItem>
-
-                        <Divider component="li" variant="middle" />
-                        <ListItem>
-                            Colour
-                            <input type="color" onChange={e => this.chooseColour(e)} ref={this.colourpickerref} className="colour-picker"/>
-                        </ListItem>
-                        <ListItem button onClick={() => this.setCellBackgroundColours()}>
-                            <ListItemText primary="Set cell backgrounds to this colour" />
-                        </ListItem>
-                        <ListItem button onClick={() => this.setCellBorderColours()}>
-                            <ListItemText primary="Set cell borders to this colour" />
-                        </ListItem>
-
-                        <ListItem button onClick={() => this.setCellTextColours()}>
-                            <ListItemText primary="Set cell text to this colour" />
-                        </ListItem>
-
-                        <Divider component="li" variant="middle" />
-
-                        <ListItem>
-                            <ListItemText primary="Move Selected Cells"/>
-                        </ListItem>
-                        <ListItem>
-                            <Button id="movecellsupbutton" onClick={() => this.moveSelectedCells(Direction.Up)}>Up</Button>
-                            <Button id="movecellsdownbutton" onClick={() => this.moveSelectedCells(Direction.Down)}>Down</Button>
-                            <Button id="movecellsleftbutton" onClick={() => this.moveSelectedCells(Direction.Left)}>Left</Button>
-                            <Button id="movecellsrightbutton" onClick={() => this.moveSelectedCells(Direction.Right)}>Right</Button>
-                        </ListItem>
-                        <Divider component="li" variant="middle" />
-
-                        <ListItem>
-                            <ListItemText primary="Horizontal Text Alignment"/>
-                        </ListItem>
-
-                        <ListItem>
-                            <Button onClick={() => this.setHorizontalTextAlignment("left")}>Left</Button>
-                            <Button onClick={() => this.setHorizontalTextAlignment("center")}>Centre</Button>
-                            <Button onClick={() => this.setHorizontalTextAlignment("right")}>Right</Button>
-                        </ListItem>
-
-                        <Divider component="li" variant="middle" />
-                        <ListItem>
-                            <ListItemText primary="Vertical Text Alignment:"/>
-                        </ListItem>
-
-                        <ListItem>
-                            <Button onClick={() => this.setVerticalTextAlignment("top")}>Top</Button>
-                            <Button onClick={() => this.setVerticalTextAlignment("middle")}>Middle</Button>
-                            <Button onClick={() => this.setVerticalTextAlignment("bottom")}>Bottom</Button>
-                        </ListItem>
-
-                        <Divider component="li" variant="middle" />
-                        <ListItem>
-                            <ListItemText primary="Choose which borders to modify"/>
-                        </ListItem>
-
-                        <ListItem>
-                            <ToggleButtonGroup>
-                                <ToggleButton value="top" size="small" selected={this.state.bordermodify[0]}  onClick={(e) => this.selectBorderToModify(0)}>
-                                    Top
-                                </ToggleButton>
-                                <ToggleButton value="right" size="small" selected={this.state.bordermodify[1]}  onClick={(e) => this.selectBorderToModify(1)}>
-                                    Right
-                                </ToggleButton>
-                                <ToggleButton value="bottom" size="small" selected={this.state.bordermodify[2]}  onClick={(e) => this.selectBorderToModify(2)}>
-                                    Bottom
-                                </ToggleButton>
-                                <ToggleButton value="left" size="small" selected={this.state.bordermodify[3]}  onClick={(e) => this.selectBorderToModify(3)}>
-                                    Left
-                                </ToggleButton>
-                            </ToggleButtonGroup>
-                        </ListItem>
-
-                        <ListItem>
-                            <ListItemText primary="Border Style:" />
-                            <select name="chooseborderstyle" onChange={(e) => this.chooseBorderStyle(e)}>
-                                <option value="solid">Solid</option>
-                                <option value="dotted">Dotted</option>
-                                <option value="dashed">Dashed</option>
-                                <option value="none">None</option>
-                            </select>
-                        </ListItem>
-
-
-                        
-                    </List>
-                </Drawer>
 
                 
 

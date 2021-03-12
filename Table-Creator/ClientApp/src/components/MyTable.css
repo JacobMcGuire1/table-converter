@@ -41,6 +41,7 @@
     top: 1%;
     display: block;
     Margin: 15px auto 15px auto;
+    background-color: lightgray;
 }
 
 #textcodeblock {
@@ -101,8 +102,9 @@
   justify-content: center;
   align-items: center;
   position: relative;
-  margin: 0px 0px 0px 430px;
+  margin: 300px 0px 0px 20px;
   height: 100%;
+  z-index: -1;
 
 }
 .maintable {
@@ -127,10 +129,46 @@
     position: fixed;
     right:0;
     /*word-break: break-all;*/
-    background-color: white;
-    opacity: 90%;
+    background-color: lightgray;
+    border-left: solid;
+    height: 100%;
+    margin: 0px 0px 0px 0px;
 }
 
 .tablesavetextbox {
     margin: 5px;
+}
+
+#topdiv {
+    height: 300px;
+    float:top;
+    position: fixed;
+    overflow: auto;
+    width:70%;
+    border-bottom: solid;
+    z-index: 10;
+    background-color: lightgray;
+}
+
+#topdivwide {
+    height: 300px;
+    float:top;
+    position: fixed;
+    overflow: auto;
+    width:100%;
+    border-bottom: solid;
+    z-index: 10;
+    background-color:lightgray;
+}
+
+.minimenudiv {
+    float: left;
+}
+
+.smallButton {
+    width: 10px;
+}
+
+.controlTabContentDiv{
+    width: 100%;
 }
