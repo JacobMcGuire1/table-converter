@@ -12,6 +12,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import Papa from 'papaparse';
 import Color from 'color';
 import cloneSymbol from 'lodash/_cloneSymbol';
+import { red } from '@material-ui/core/colors';
 
 let jsonstate = "";
 
@@ -1221,11 +1222,11 @@ class MyTable extends React.Component<Props, TableState> {
             return (
                 <rect
                     id="svgselectrect"
-                    fill="rgba(255,0,0,0.3)"
                     x={Math.min(start[0], end[0])}
                     y={Math.min(start[1], end[1])}
                     width={Math.abs(start[0] - end[0])}
                     height={Math.abs(start[1] - end[1])}
+                    style={{border:"1px solid black", fillOpacity: 0.3, fill: "red"}}
                 />
             );
         }
@@ -1322,14 +1323,22 @@ class MyTable extends React.Component<Props, TableState> {
         //    console.log(htmlcanvas.toDataURL("image/png"));
         //};
     }
-
+    private handleKeyPress(e: any) {
+        console.log(e.key);
+        this.selectAllCells();
+        if (e.ctrlKey){
+            if (e.key == "a"){
+                this.selectAllCells();
+            }
+        }
+    }
 
     /*
      * Draws the current representation of the table.
      */
     private drawTable() {
         return (
-            <div onKeyDown={(e) => this.handleKeyPress(e)} className="maintablediv" onClick={(e) => this.bigClick(e)}>
+            <div style={{zIndex:-1}} onKeyDown={(e) => this.handleKeyPress(e)} className="maintablediv" onClick={(e) => this.bigClick(e)}>
                 <svg ref={this.svgref} width="9000px" height="9000px" id="svg"  onMouseDown={(e) => this.svgCreateRect(e)} onMouseUp={(e) => this.svgDestroyRect(e)} onMouseMove={(e) => this.svgDragRect(e)} onMouseLeave={(e) => this.svgDestroyRect(e)}>
                     <foreignObject x="0%" y="0%" width="100%" height="100%">
                         <table ref={this.tableref} className="maintable">
@@ -1444,14 +1453,14 @@ class MyTable extends React.Component<Props, TableState> {
                         
                     </div>
                 );
-            case 3:
+            case 4:
                 return (
                     <div id="PNGDiv">
                         <h4>Open Table as PNG Image in a new tab</h4>
                         <Button className="table-buttons" type="button" onClick={() => this.convertToImage()}>Generate PNG</Button>
                     </div>
                 );
-            case 4:
+            case 3:
                 return (
                     <div id="CSVDiv">
                         {this.getCSVContent()}
@@ -1970,7 +1979,7 @@ class MyTable extends React.Component<Props, TableState> {
                             <Tab label="HTML" tabIndex={1} style={{minWidth:"20%"}}/>
                             <Tab label="Text" tabIndex={2} style={{minWidth:"20%"}}/>
                            {/* <Tab label="PNG" tabIndex={3} style={{minWidth:"20%"}}/>*/}
-                            <Tab label="CSV" tabIndex={4} style={{minWidth:"20%"}}/>
+                            <Tab label="CSV" tabIndex={3} style={{minWidth:"20%"}}/>
                         </Tabs>
                     </AppBar>
                     <div id="tabContentDiv">
@@ -1987,10 +1996,10 @@ class MyTable extends React.Component<Props, TableState> {
             <div >
                 <AppBar position="static" >
                     <Tabs id="tabbar" variant="scrollable" value={this.state.topmenutab} onChange={(e,v) => this.changeTab2(e,v)}>
-                        <Tab label="Create/Save Table" tabIndex={0} style={{minWidth:"20%"}}/>
-                        <Tab label="Import Table" tabIndex={1} style={{minWidth:"20%"}}/>
-                        <Tab label="Global Controls" tabIndex={2} style={{minWidth:"20%"}}/>
-                        <Tab label="Selected Cell Controls" tabIndex={3} style={{minWidth:"20%"}}/>
+                        <Tab id="tab1" label="Create/Save Table" tabIndex={0} style={{minWidth:"20%"}}/>
+                        <Tab id="tab2" label="Import Table" tabIndex={1} style={{minWidth:"20%"}}/>
+                        <Tab id="tab3" label="Global Controls" tabIndex={2} style={{minWidth:"20%"}}/>
+                        <Tab id="tab4" label="Selected Cell Controls" tabIndex={3} style={{minWidth:"20%"}}/>
                     </Tabs>
                 </AppBar>
                 <div id="controlTabContentDiv">
@@ -2041,7 +2050,7 @@ class MyTable extends React.Component<Props, TableState> {
                                 </ListItem>
 
                                 <ListItem>
-                                    <Button onClick={() => this.setState({showoutput: !this.state.showoutput})}>Toggle Output Display</Button>
+                                    <Button onClick={() => this.setState({showoutput: !this.state.showoutput})}>Toggle Output Menu</Button>
                                 </ListItem>
                                 <Divider component="li" variant="middle" />
 

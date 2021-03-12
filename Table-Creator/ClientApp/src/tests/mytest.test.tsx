@@ -1,9 +1,10 @@
 ﻿import MyTable  from "../components/MyTable";
 import Props  from "../components/MyTable";
-import { render, fireEvent, waitForElement, findByText, getByText, waitForElementToBeRemoved } from "@testing-library/react";
+import { render, fireEvent, waitForElement, findByText, getByText, waitForElementToBeRemoved, getByTestId } from "@testing-library/react";
 import * as React from 'react';
 import { mount, shallow, configure } from 'enzyme'
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
+import { createShallow, createMount } from '@material-ui/core/test-utils';
 
 configure({ adapter: new Adapter() });
 
@@ -20,22 +21,37 @@ test("Check first cell contents", () => {
 });
 
 test("Check AddRow", () => {
-   let wrapper = shallow(<MyTable/>);
+   let mount = createMount();
+   let wrapper = mount(<MyTable/>);
    let table = wrapper.instance() as MyTable;
 
-   let addrowbutton = wrapper.find('#addrowbutton');
-   addrowbutton.simulate("click");
+   let tab = wrapper.find('#tab3')
+   tab.simulate("click");
+   //fireEvent.mouseDown(getByTestId(wrapper.getElement(), "id-addrowbutton"));
+   //let addrowbutton = wrapper.find('#addrowbutton');//wrapper.find('#addrowbutton');
+   //addrowbutton.simulate("click");
 
    let cell = wrapper.find('td[id="5 1"]');
    expect(cell).toBeTruthy();
  });
 
- test("Check AddCol", () => {
+ test("Check AddCol Function", () => {
    let wrapper = shallow(<MyTable/>);
    let table = wrapper.instance() as MyTable;
 
-   let addcolbutton = wrapper.find('#addcolbutton');
-   addcolbutton.simulate("click");
+   table["addCol"]();
+
+   expect(table.state.table[0].length).toBe(6);
+ });
+
+ test("Check AddCol As User", () => {
+   let shallow = createShallow();
+   let wrapper = shallow(<MyTable/>);
+   let table = wrapper.instance() as MyTable;
+
+   //let addcolbutton = wrapper.find('#addcolbutton');
+   //addcolbutton.simulate("click");
+   //fireEvent.mouseDown(getByTestId("id-country"));
 
    let cell = wrapper.find('td[id="0 5"]');
    expect(cell).toBeTruthy();
@@ -69,7 +85,9 @@ test("Simple Merge", () => {
 });
 
 test("Less Complicated Merge", () => {
+   let shallow = createShallow();
    let wrapper = shallow(<MyTable/>);
+   
    let table = wrapper.instance() as MyTable;
 
    let mergebutton = wrapper.find('#mergebutton');
@@ -90,6 +108,7 @@ test("Less Complicated Merge", () => {
 
 
 //Used to fix merge bug
+
 test("More Complicated Merge", () => {
    let wrapper = shallow(<MyTable/>);
    let table = wrapper.instance() as MyTable;
