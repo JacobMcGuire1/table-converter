@@ -1973,11 +1973,11 @@ class MyTable extends React.Component<Props, TableState> {
                 <div id="outputdiv">
                     <AppBar position="static" >
                         <Tabs id="tabbar" variant="scrollable" value={this.state.tab} onChange={(e,v) => this.changeTab(e,v)}>
-                            <Tab label="LaTeX" tabIndex={0}/>
-                            <Tab label="HTML" tabIndex={1}/>
-                            <Tab label="Text" tabIndex={2}/>
-                            <Tab label="PNG" tabIndex={3}/>
-                            <Tab label="CSV" tabIndex={4}/>
+                            <Tab label="LaTeX" tabIndex={0} style={{minWidth:"20%"}}/>
+                            <Tab label="HTML" tabIndex={1} style={{minWidth:"20%"}}/>
+                            <Tab label="Text" tabIndex={2} style={{minWidth:"20%"}}/>
+                            <Tab label="PNG" tabIndex={3} style={{minWidth:"20%"}}/>
+                            <Tab label="CSV" tabIndex={4} style={{minWidth:"20%"}}/>
                         </Tabs>
                     </AppBar>
                     <div id="tabContentDiv">
