@@ -29,7 +29,6 @@ namespace Table_Creator.Controllers
         [HttpPost("InsertTable")]
         public bool InsertTable([FromForm] IFormCollection form)//(string name, string password, string tablejson, string tablename)
         {
-
             var name = form["username"].ToString();
             var password = form["password"].ToString();
             var tablejson = form["tablejson"].ToString();
@@ -58,10 +57,12 @@ namespace Table_Creator.Controllers
         [HttpPost("GetMyTables")]
         public string GetMyTables([FromForm] IFormCollection form)//(string name, string password, string tablejson, string tablename)
         {
-            //[FromForm]IFormCollection form;
-            var te = form.Keys.ToList();
+            /*var te = form.Keys.ToList();
             var name = te[0];
-            var password = te[1];
+            var password = te[1];*/
+
+            var name = form["username"].ToString();
+            var password = form["password"].ToString();
 
             var conn = Connect();
 
@@ -78,11 +79,14 @@ namespace Table_Creator.Controllers
         [HttpPost("GetTable")]
         public string GetTable([FromForm] IFormCollection form)
         {
-            //[FromForm]IFormCollection form;
-            var te = form.Keys.ToList();
+            /*var te = form.Keys.ToList();
             var name = te[0];
             var password = te[1];
-            var tableid = te[2];
+            var tableid = te[2];*/
+
+            var name = form["username"].ToString();
+            var password = form["password"].ToString();
+            var tableid = form["tableid"].ToString();
 
             var userid = authenticate(name, password);
             if (userid == "") return null;
@@ -157,13 +161,13 @@ namespace Table_Creator.Controllers
             conn.Close();
 
             return tables;
-
         }
 
         
 
 
-
+        //Returns the corresponding userid or creates an account if the username doesn't exist, then returns the newly created userid.
+        //Returns empty string if the details are wrong.
         private string authenticate(string name, string password)
         {
             var conn = Connect();

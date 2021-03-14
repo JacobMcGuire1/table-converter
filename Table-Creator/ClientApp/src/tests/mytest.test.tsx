@@ -21,15 +21,17 @@ test("Check first cell contents", () => {
 });
 
 test("Check AddRow", () => {
-   let mount = createMount();
-   let wrapper = mount(<MyTable/>);
+   //let mount = createMount();
+   let wrapper = shallow(<MyTable/>);
    let table = wrapper.instance() as MyTable;
 
-   let tab = wrapper.find('#tab3')
+   let tab = wrapper.find('#tab3');
+   //console.log(tab.debug());
+   
    tab.simulate("click");
    //fireEvent.mouseDown(getByTestId(wrapper.getElement(), "id-addrowbutton"));
-   //let addrowbutton = wrapper.find('#addrowbutton');//wrapper.find('#addrowbutton');
-   //addrowbutton.simulate("click");
+   let addrowbutton = wrapper.find('#addrowbutton');//wrapper.find('#addrowbutton');
+   addrowbutton.simulate("click");
 
    let cell = wrapper.find('td[id="5 1"]');
    expect(cell).toBeTruthy();
@@ -72,6 +74,9 @@ test("Select Cell", () => {
 test("Simple Merge", () => {
    let wrapper = shallow(<MyTable/>);
    let table = wrapper.instance() as MyTable;
+
+   let tab = wrapper.find('#tab4');
+   tab.simulate("click");
 
    table.state.table[1][1].select();
    expect(table.state.table[1][1].isSelected()).toBe(true);

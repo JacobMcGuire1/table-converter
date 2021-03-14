@@ -1889,8 +1889,8 @@ class MyTable extends React.Component<Props, TableState> {
 
     private async getMyTables(){
         let formData = new FormData();
-        formData.append(this.state.username, "");
-        formData.append(this.state.password, "");
+        formData.append("username", this.state.username);
+        formData.append("password", this.state.password);
 
         let request = await fetch('DB/GetMyTables', {
             method: 'POST',
@@ -1931,9 +1931,9 @@ class MyTable extends React.Component<Props, TableState> {
 
     private async getTable(tableid: string){
         let formData = new FormData();
-        formData.append(this.state.username, "");
-        formData.append(this.state.password,"");
-        formData.append(tableid, "");
+        formData.append("username", this.state.username);
+        formData.append("password", this.state.password);
+        formData.append("tableid", tableid);
         
         let request = await fetch('DB/GetTable', {
             method: 'POST',

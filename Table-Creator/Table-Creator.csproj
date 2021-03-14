@@ -10,6 +10,11 @@
     <RootNamespace>Table_Creator</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <JavaScriptTestRoot>ClientApp\src\tests\</JavaScriptTestRoot>
+    <JavaScriptTestFramework>Jest</JavaScriptTestFramework>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="3.1.9" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.4" />
