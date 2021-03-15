@@ -290,7 +290,7 @@ class MyTable extends React.Component<Props, TableState> {
             (item) => {
                 item.setBackgroundColour(this.chosencolour)
                 if (item.isMergeRoot()){
-                    let children_p = item.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
+                    let children_p = item.getMergeChildren();
                     let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
                     children_cells.forEach(child_cell => child_cell.setBackgroundColour(this.chosencolour));
                 }
@@ -306,7 +306,7 @@ class MyTable extends React.Component<Props, TableState> {
             (item) => {
                 item.setTextColour(this.chosencolour)
                 if (item.isMergeRoot()){
-                    let children_p = item.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
+                    let children_p = item.getMergeChildren();
                     let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
                     children_cells.forEach(child_cell => child_cell.setTextColour(this.chosencolour));
                 }
@@ -432,8 +432,8 @@ class MyTable extends React.Component<Props, TableState> {
                 cell.select();
 
                 //Select the mergeroot
-                if (cell.getMergeRoot() !== ""){
-                    let mergeroot = new TablePoint(undefined, undefined, cell.getMergeRoot());
+                if (cell.getMergeRoot() !== undefined){
+                    let mergeroot = cell.getMergeRoot()!;
                     let mergerootcell = this.state.table[mergeroot.row][mergeroot.col];
                     if (!mergerootcell.isSelected()){
                         recurse = true;
@@ -446,7 +446,7 @@ class MyTable extends React.Component<Props, TableState> {
                 let cellchildren = cell.getMergeChildren();
                 cellchildren.forEach(
                     (item2) => {
-                        let childpoint = new TablePoint(undefined, undefined, item2);
+                        let childpoint = item2;
                         let childcell = this.state.table[childpoint.row][childpoint.col];
                         if (!childcell.isSelected()) recurse = true;
                         childcell.select();
@@ -460,14 +460,12 @@ class MyTable extends React.Component<Props, TableState> {
             root.deselect();
             children.forEach(
                 (item) => {
-                    item.mergeAsChild(root.p.toString());
+                    item.mergeAsChild(root.p);
                     item.deselect();
                 });
+            root.mergeAsRoot(children.map(x => x.p));
 
-            let childrenstrings = children.map(x => x.p.toString());
-            root.mergeAsRoot(childrenstrings);
-
-            let children_p = root.getMergeChildren().map(child => new TablePoint(undefined, undefined, child));
+            let children_p = root.getMergeChildren();
             let children_cells = children_p.map(p => this.state.table[p.row][p.col]);
             children_cells.forEach(child_cell => child_cell.setBackgroundColour(root.getHexBackgroundColour()));
 
@@ -481,23 +479,23 @@ class MyTable extends React.Component<Props, TableState> {
         this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
         if (selectedcells.length === 0) return;
-        let roots = new Set<string>();
+        let roots = new Set<TablePoint>();
         selectedcells.forEach(
             (item) => {
-                if (item.getMergeRoot() !== "") {
-                    roots.add(item.getMergeRoot());
+                if (item.getMergeRoot() !== undefined) {
+                    roots.add(item.getMergeRoot()!);
                 }
                 item.deselect();
             });
         let rootsarray = Array.from(roots);
         rootsarray.forEach(
             (item) => {
-                let p = new TablePoint(undefined, undefined, item);
+                let p = item;
                 let cell = this.state.table[p.row][p.col];
                 let children = cell.getMergeChildren();
                 children.forEach(
                     (childitem) => {
-                        let p2 = new TablePoint(undefined, undefined, childitem);
+                        let p2 = childitem;
                         let childcell = this.state.table[p2.row][p2.col];
                         childcell.unMerge();
                     });
@@ -1238,7 +1236,7 @@ class MyTable extends React.Component<Props, TableState> {
         selectedcells.forEach(
             (cell) =>{
                 if (cell.isMergeRoot()){
-                    let children = cell.getMergeChildren().map(str => new TablePoint(undefined, undefined, str));
+                    let children = cell.getMergeChildren();
                     children.forEach(
                         child_p => {
                             let childcell = newtable[child_p.row][child_p.col];
@@ -1247,23 +1245,23 @@ class MyTable extends React.Component<Props, TableState> {
                 }
             })
         
-        let unmovablemarges: string[] = [];
+        let unmovablemarges: TablePoint[] = [];
         switch(dir){
             case Direction.Up:
             case Direction.Left:
                 for (let i = 0; i < selectedcells.length; i++) {
-                    if(!unmovablemarges.includes(selectedcells[i].getMergeRoot())){
+                    if(!unmovablemarges.includes(selectedcells[i].getMergeRoot()!)){ //may need to remove '!'
                         let result = this.moveSelectedCellsLoopContent(selectedcells, i, newtable, dir);
-                        if (result !== "") unmovablemarges.push(result)
+                        if (result !== undefined) unmovablemarges.push(result)
                     }
                 }
                 break;
             case Direction.Down:
             case Direction.Right:
                 for (let i = selectedcells.length - 1; i >= 0; i--) {
-                    if(!unmovablemarges.includes(selectedcells[i].getMergeRoot())){
+                    if(!unmovablemarges.includes(selectedcells[i].getMergeRoot()!)){
                         let result = this.moveSelectedCellsLoopContent(selectedcells, i, newtable, dir);
-                        if (result !== "") unmovablemarges.push(result)
+                        if (result !== undefined) unmovablemarges.push(result)
                     }
                 }
                 break;
@@ -1277,7 +1275,7 @@ class MyTable extends React.Component<Props, TableState> {
 
 
     //Returns the merge root if that merge can't be moved.
-    private moveSelectedCellsLoopContent(selectedcells: CellDetails[], i: number, newtable: CellDetails[][], dir: Direction): string{
+    private moveSelectedCellsLoopContent(selectedcells: CellDetails[], i: number, newtable: CellDetails[][], dir: Direction): TablePoint | undefined{
         let cell = selectedcells[i];
         //let newcell = cloneDeep(cell);
         //newcell.setData("");
@@ -1305,7 +1303,7 @@ class MyTable extends React.Component<Props, TableState> {
                 }
             }
         }
-        return "";
+        return undefined;
         
     }
 
@@ -1421,15 +1419,15 @@ class MyTable extends React.Component<Props, TableState> {
         for (let row = 0; row < table.length; row++) {
             for (let col = 0; col < table[0].length; col++) {
                 let cell = table[row][col];
-                if (cell.getMergeRoot() === cell.p.toString()){
+                if (cell.isMergeRoot()){
                     mergeroots.push(cell);
                    
                     cell.p = new TablePoint(row, col, undefined);
-                    if (cell.getMergeRoot() !== cell.p.toString()){
+                    if (!cell.isMergeRoot()){
                         cell.unMerge();
                     }
                 } else {
-                    if (cell.getMergeRoot() !== ""){
+                    if (cell.getMergeRoot() !== undefined){
                         cell.unMerge();
                     }
                     cell.p = new TablePoint(row, col, undefined);
@@ -1438,24 +1436,22 @@ class MyTable extends React.Component<Props, TableState> {
         }
         mergeroots.forEach(
             rootcell => {
-                let children_str = rootcell.getMergeChildren();
-                let children_p = children_str.map(cellstr => new TablePoint(undefined, undefined, cellstr));
+                let children_p = rootcell.getMergeChildren();
                 children_p = children_p.filter(child => this.checkIfPointInTable(child, table));
                 children_p.forEach(
                     child_p => {
                         let child_cell = table[child_p.row][child_p.col];
-                        child_cell.mergeAsChild(rootcell.p.toString());
+                        child_cell.mergeAsChild(rootcell.p);
                         child_cell.hidden = true;
                     })
-                let newchildren_str = children_p.map((child) => child.toString());
-                if (newchildren_str.length === 0){
-                    if (children_str.length === 0) {
-                        rootcell.mergeAsChild(rootcell.mergeroot);
+                if (children_p.length === 0){
+                    if (children_p.length === 0) {
+                        rootcell.mergeAsChild(rootcell.mergeroot!);
                     }else{
                         rootcell.unMerge();
                     }
                 } else {
-                    rootcell.mergeAsRoot(newchildren_str);
+                    rootcell.mergeAsRoot(children_p);
                 }
                 
             })

@@ -16,18 +16,16 @@ class CellDetails {
     public hidden: boolean = false;
     private editing: boolean = false;
     private selected: boolean = false;
-    public mergeroot: string = "";
-    private mergechildren: string[] = [];
+    public mergeroot: TablePoint | undefined = undefined;
+    private mergechildren: TablePoint[] = [];
     private data: string = "";
     private backgroundcolour: string = "";
     private textcolour: string = "";
-    public borderstyles: [BorderStyle, BorderStyle, BorderStyle, BorderStyle] = [BorderStyle.Solid, BorderStyle.Solid, BorderStyle.Solid, BorderStyle.Solid];
-    public bordercolours: [string, string, string, string] = ["#000000", "#000000", "#000000", "#000000"];
-    public width: number = 0;
-    public height: number = 0;
     public csstextalign: string = "center";
     public verticalalign: string = "middle";
     public borders: [boolean, boolean, boolean, boolean] = [true, true, true, true]; //T R B L
+    public borderstyles: [BorderStyle, BorderStyle, BorderStyle, BorderStyle] = [BorderStyle.Solid, BorderStyle.Solid, BorderStyle.Solid, BorderStyle.Solid];
+    public bordercolours: [string, string, string, string] = ["#000000", "#000000", "#000000", "#000000"];
 
     constructor(p: TablePoint, data: string | undefined) {
         this.p = p;
@@ -38,12 +36,6 @@ class CellDetails {
         }else{
             this.setData(data);
         }
-
-        /*if (data !== undefined){
-            this.setData(data);
-        }else{
-            if (p !== undefined) this.setData(p.toString());
-        }*/
     }
     public isSelected() {
         return this.selected;
@@ -60,28 +52,28 @@ class CellDetails {
     public getMergeChildren() {
         return this.mergechildren;
     }
-    public addMergeChild(child: string){
+    public addMergeChild(child: TablePoint){
         this.mergechildren.push(child);
     }
     public unMerge() {
-        this.mergeroot = "";
+        this.mergeroot = undefined;
         this.mergechildren = [];
         this.hidden = false;
     }
-    public mergeAsChild(root: string) {
+    public mergeAsChild(root: TablePoint) {
         this.mergeroot = root;
         this.mergechildren = [];
         this.hidden = true;
     }
     public isMergeRoot(){
-        return this.mergeroot === this.p.toString();
+        return (this.mergeroot && this.mergeroot.equals(this.p));
     }
     public isMergeChild(){
-        return ((this.mergeroot !== "") && (this.mergeroot !== this.p.toString()))
+        return (this.mergeroot !== undefined && !this.isMergeRoot())
     }
-    public mergeAsRoot(children: string[]) {
-        this.mergeroot = this.p.toString();
-        this.mergechildren = children;
+    public mergeAsRoot(children: TablePoint[]) {
+        this.mergeroot = this.p;
+        this.mergechildren = children.map(x => x);
         this.hidden = false;
     }
     public enableEdit() {
@@ -109,11 +101,11 @@ class CellDetails {
     //What if merge root leaves table?
     //What if moved on top of a merge?
     public move(dir: Direction): TablePoint[]{
-        if (this.mergeroot === this.p.toString()) this.mergeroot = moveTablePoint(new TablePoint(undefined, undefined, this.mergeroot), dir).toString();
+        if (this.isMergeRoot()) this.mergeroot = moveTablePoint(this.mergeroot!, dir);
         this.p = moveTablePoint(this.p, dir);
-        let children = this.mergechildren.map(child => new TablePoint(undefined, undefined, child));
-        let newchildren = children.map(child => moveTablePoint(child, dir));
-        this.mergechildren = newchildren.map(child => child.toString());
+        //let children = this.mergechildren.map(child => new TablePoint(undefined, undefined, child));
+        let newchildren = this.mergechildren.map(child => moveTablePoint(child, dir));
+        this.mergechildren = newchildren;//.map(child => child.toString());
         
         return [];
     }
@@ -125,7 +117,7 @@ class CellDetails {
         let maxrow = this.p.row;
         this.mergechildren.forEach(
             (item) => {
-                let p = new TablePoint(undefined, undefined, item);
+                let p = item;
                 if (p.row < minrow) {
                     minrow = p.row;
                 }
@@ -150,7 +142,7 @@ class CellDetails {
         return "\\color[HTML]{" + this.textcolour.replace('#', '').toUpperCase() + "}";
     }
     private getBotLeftPoint(): TablePoint{
-        let child_ps  = this.mergechildren.map(str => new TablePoint(undefined, undefined, str));
+        let child_ps  = this.mergechildren;
         let row = Math.max(...child_ps.map(child => child.row));
         let col = Math.min(...child_ps.map(child => child.col));
         return new TablePoint(row, col, undefined);
@@ -166,11 +158,11 @@ class CellDetails {
         let LRborders = [borders[3] ? "|" : " ", borders[1] ? "|" : " "];        
 
         //If it's a normal unmerged cell.
-        if (this.mergeroot === "") {
+        if (this.mergeroot === undefined) {
             return undefined;
         }
 
-        if (this.mergeroot === this.p.toString()) {
+        if (this.isMergeRoot()) {
             let size = this.getMergeSize();
             let h = size[0];
             let w = size[1];
@@ -190,12 +182,12 @@ class CellDetails {
         let LRborders = [borders[3] ? "|" : " ", borders[1] ? "|" : " "];        
 
         //If it's a normal unmerged cell.
-        if (this.mergeroot === "") {
+        if (this.mergeroot === undefined) {
             data = "\\multicolumn{1}{" + LRborders[0] + this.csstextalign.charAt(0) + LRborders[1] + "}{" + this.getLatexTextColour() + data + "}";
             return data + " &";
         }
         //If it's the root cell of a group of merged cells.
-        if (this.mergeroot === this.p.toString()) {
+        if (this.isMergeRoot()) {
             let size = this.getMergeSize();
             let h = size[0];
             let w = size[1];
@@ -209,7 +201,7 @@ class CellDetails {
             return "\\multicolumn{" + (w + 1).toString() + "}{|c|}{" + this.getLatexBackgroundColour() + "} &";
         }
         //return "THIS CELL SHOULD NOT BE DISPLAYED";
-        let rootp = new TablePoint(undefined, undefined, this.mergeroot);
+        let rootp = this.mergeroot;
         if (this.p.row > rootp.row) {
             let leftmerge = leftmergecells[this.p.toString()];
             if (leftmerge !== undefined) {
@@ -220,42 +212,42 @@ class CellDetails {
         return "";
     }
     public getBottomLines(): TablePoint[] {
-        if (this.mergeroot === this.p.toString()) {
+        if (this.isMergeRoot()) {
             let bottom = this.p.row;
             let cells: TablePoint[] = [this.p];
             this.mergechildren.forEach(
                 (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
+                    let p =item;
                     cells.push(p);
                     if (p.row > bottom) bottom = p.row;
                 });
             return cells.filter(cell => cell.row === bottom); //Returns the cells at the bottom of the merge.
         }
-        if (this.mergeroot === "" && this.borderstyles[2] !== BorderStyle.None) return [this.p];
+        if (this.mergeroot === undefined && this.borderstyles[2] !== BorderStyle.None) return [this.p];
         return []; //If it's child in a merge, return nothing.
     }
     public getLeftLines(): TablePoint[] {
-        if (this.mergeroot === this.p.toString()) {
+        if (this.isMergeRoot()) {
             let left = this.p.col;
             let cells: TablePoint[] = [this.p];
             this.mergechildren.forEach(
                 (item) => {
-                    let p = new TablePoint(undefined, undefined, item);
+                    let p = item;
                     if (p.col === left) cells.push(p);
                 });
             return cells; //Returns the cells at the bottom of the merge.
         }
-        if (this.mergeroot === "" && this.borderstyles[3] !== BorderStyle.None) return [this.p];
+        if (this.mergeroot === undefined && this.borderstyles[3] !== BorderStyle.None) return [this.p];
         return []; //If it's child in a merge, return nothing.
     }
     public getHexBackgroundColour() : string {
         return this.backgroundcolour;
     }
     public getHTML(): string {
-        if (this.mergeroot !== "" && this.mergeroot !== this.p.toString()) return ""; //Return nothing if this cell is hidden by being a child of a merge.
+        if (this.mergeroot !== undefined && !this.isMergeRoot()) return ""; //Return nothing if this cell is hidden by being a child of a merge.
 
         let mergetext = "";
-        if (this.mergeroot === this.p.toString()) {
+        if (this.isMergeRoot()) {
             let size = this.getMergeSize();
             let h = size[0];
             let w = size[1];
@@ -276,7 +268,23 @@ class CellDetails {
         if (colour !== "") {
             html += "background-color:" + colour + ";";
         }
-        html += "padding: 5px;";
+
+        html += 
+        `
+        padding: 5px;\
+        text-align: ${this.csstextalign};\
+        border-top: ${this.getcssborderstyle(0)};\
+        border-right: ${this.getcssborderstyle(1)};\
+        border-bottom: ${this.getcssborderstyle(2)};\
+        border-left: ${this.getcssborderstyle(3)};\
+        vertical-align: ${this.verticalalign};\
+        color: ${this.textcolour};\
+        '>
+        ${escapeHTML(this.getData())}\
+        </td >
+        `
+
+        /*html += "padding: 5px;";
         html += "text-align: " + this.csstextalign + ";";
         html += "border-top:" + this.getcssborderstyle(0)  + ";";
         html += "border-right:" + this.getcssborderstyle(1)  + ";";
@@ -284,7 +292,9 @@ class CellDetails {
         html += "border-left:" + this.getcssborderstyle(3)  + ";";
         html += "vertical-align:" + this.verticalalign + ";";
         html += "color:" + this.textcolour + ";";
-        html += "'>" + escapeHTML(this.getData()) + "</td >\n";
+        html += "'>" + escapeHTML(this.getData()) + "</td >\n";*/
+
+        
 
         return html;
     }
@@ -299,7 +309,7 @@ class CellDetails {
         return Object.assign({}, this);
     }
     public isVisible() {
-        return (this.mergeroot === this.p.toString()) || (this.mergeroot === "");
+        return this.isMergeRoot() || this.mergeroot === undefined;
     }
     private getparagraphcss() {
         //let styling: CSS.Properties = {
