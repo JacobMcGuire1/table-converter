@@ -585,7 +585,7 @@ class MyTable extends React.Component<Props, TableState> {
             //Calculates where to draw horizontal lines.
             let lines = horlines[row];//[true, true, true, true, true];
             let drawingline = false;
-            let l = " ";
+            let l = "";
             for (let i = 0; i < lines.length; i++) {
                 let col = i + 1;
                 if (lines[i] && !drawingline) {
@@ -606,7 +606,7 @@ class MyTable extends React.Component<Props, TableState> {
         let toprow = this.state.table[0];
         let toplines = toprow.map(cell => cell.borderstyles[0] !== "none");
         let drawingline = false;
-        let topline = " ";
+        let topline = "";
         for (let i = 0; i < toplines.length; i++) {
             let col = i + 1;
             if (toplines[i] && !drawingline) {
@@ -629,17 +629,17 @@ class MyTable extends React.Component<Props, TableState> {
         latex += "\n\\begin{tabular}{" + collatex + "}";
         latextable.forEach(
             (x) => {
-                latex += "\n" + x;
+                latex += x + "\n";
             }
         );
-        latex += "\n\\end{tabular}";
+        latex += "\\end{tabular}";
         latex += "\n\\end{center}";
 
         let latexpackages = "\\usepackage[utf8]{inputenc}\n";
         latexpackages += "\\usepackage[table,xcdraw]{xcolor}\n";
         latexpackages += "\\usepackage{multicol}\n";
         latexpackages += "\\usepackage{multirow}\n";
-        latexpackages += "\\usepackage{makecell}";
+        latexpackages += "\\usepackage{tabstackengine}";
 
         return (
             <div>
@@ -992,8 +992,6 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
-
-
     private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         if (this.tableref.current !== null && !this.tableref.current.contains(e.target as Node)){
             this.deselectAllCells();
@@ -1008,9 +1006,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ topmenutab: (v as number) });
     }
 
-    
-
-    private getTabContent() {
+    private getOutputPanelTabContent() {
         switch (this.state.tab) {
             case 1:
                 return (
@@ -1066,7 +1062,7 @@ class MyTable extends React.Component<Props, TableState> {
                 let response = await request.json();
     
                 if (!response["error"]) {
-                    this.tableFromArray(response["table"] as string[][]);
+                    this.importTableFromArray(response["table"] as string[][]);
                 } else {
                     alert("Table response from server was invalid.");
                 }
@@ -1096,7 +1092,6 @@ class MyTable extends React.Component<Props, TableState> {
         else{
             alert("Table dimensions too big.");
         }
-        
     }
 
     private async getStringFromClipboard(){
@@ -1105,10 +1100,11 @@ class MyTable extends React.Component<Props, TableState> {
 
     private async parseCSVFromClipboard(){
         let csvarray = this.parseCSV(await this.getStringFromClipboard());
-        this.tableFromArray(csvarray);
+        this.importTableFromArray(csvarray);
     }
+
     public testcsv(csv: string){
-        this.tableFromArray(this.parseCSV(csv));
+        this.importTableFromArray(this.parseCSV(csv));
     }
 
     private parseCSV(csv: string): string[][]{
@@ -1137,7 +1133,7 @@ class MyTable extends React.Component<Props, TableState> {
         return arr;
     }
 
-    private tableFromArray(array: string[][]){
+    private importTableFromArray(array: string[][]){
         let rows = array.length;
         let cols = Math.max(...array.map(row => row.length)); //cols is lenght of longest row.
         if (rows <= 30 && cols <= 30){
@@ -1153,7 +1149,7 @@ class MyTable extends React.Component<Props, TableState> {
             }
             this.setState({table: newtable});
         }
-        else{
+        else {
             alert("Table dimensions too big.");
         }
     }
@@ -1168,13 +1164,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState(this.state);
     }
 
-    private stateToJSON() : string{
-        let json = JSON.stringify(this.state, null, '   ');
-        console.log(json);
-        return json;
-    }
-
-    private async saveTable(){
+    private async requestSaveTable(){
         let formData = new FormData();
         formData.append("username", this.state.username);
         formData.append("password", this.state.password);
@@ -1191,11 +1181,11 @@ class MyTable extends React.Component<Props, TableState> {
         if (!response){
             alert("Couldn't save table");
         }
-        this.getMyTables();
+        this.requestMyTables();
     }
 
 
-    private async deleteTable(id: string) {
+    private async requestDeleteTable(id: string) {
         let formData = new FormData();
         formData.append("username", this.state.username);
         formData.append("password", this.state.password);
@@ -1211,22 +1201,7 @@ class MyTable extends React.Component<Props, TableState> {
         if (!response) {
             alert("Couldn't delete table");
         }
-        this.getMyTables();
-    }
-
-    
-
-    private importJSONState(jsonstate: string){
-        let newstate: TableState = JSON.parse(jsonstate);
-        for (let row = 0; row < newstate.table.length; row++) {
-            for (let col = 0; col < newstate.table[0].length; col++) {
-                let cell = newstate.table[row][col];
-                let p: TablePoint = plainToClass(TablePoint, cell.p);
-                cell.p = p;
-                newstate.table[row][col] = plainToClass(CellDetails, cell); //Convert the cell to an instance of the cell class.
-            }
-        }
-        this.setState(newstate);
+        this.requestMyTables();
     }
 
     private moveSelectedCells(dir: Direction){
@@ -1277,11 +1252,6 @@ class MyTable extends React.Component<Props, TableState> {
     //Returns the merge root if that merge can't be moved.
     private moveSelectedCellsLoopContent(selectedcells: CellDetails[], i: number, newtable: CellDetails[][], dir: Direction): TablePoint | undefined{
         let cell = selectedcells[i];
-        //let newcell = cloneDeep(cell);
-        //newcell.setData("");
-        //newcell.unMerge();
-        //newcell.deselect();
-        //newtable[cell.p.row][cell.p.col] = newcell; //replace old location with blank.
         if(!(cell.isMergeChild() || cell.isMergeRoot)) {
             cell.move(dir); //need to handle merge parents and children here. Can push them to the selectedcells list.
             if (this.checkIfPointInTable(cell.p, newtable)){
@@ -1459,7 +1429,7 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
 
-    private async getMyTables(){
+    private async requestMyTables(){
         let formData = new FormData();
         formData.append("username", this.state.username);
         formData.append("password", this.state.password);
@@ -1491,8 +1461,8 @@ class MyTable extends React.Component<Props, TableState> {
                     (table) => 
                         <ListItem key={parseInt(table[0])}>
                             <ListItemText>{table[1]}</ListItemText>
-                            <Button onClick={() => this.getTable(table[0])}>Load</Button>
-                            <Button onClick={() => this.deleteTable(table[0])}>Delete</Button>
+                            <Button onClick={() => this.requestTable(table[0])}>Load</Button>
+                            <Button onClick={() => this.requestDeleteTable(table[0])}>Delete</Button>
                         </ListItem>
                     
                 )
@@ -1501,7 +1471,7 @@ class MyTable extends React.Component<Props, TableState> {
         );
     }
 
-    private async getTable(tableid: string){
+    private async requestTable(tableid: string){
         let formData = new FormData();
         formData.append("username", this.state.username);
         formData.append("password", this.state.password);
@@ -1514,9 +1484,7 @@ class MyTable extends React.Component<Props, TableState> {
             body: formData
         });
         let responsetable = await request.json() as CellDetails[][];
-        //let responsetable: CellDetails[][] = JSON.parse(response);
 
-        /*console.log("hi");
         for (let row = 0; row < responsetable.length; row++) {
             for (let col = 0; col < responsetable[0].length; col++) {
                 let cell = responsetable[row][col];
@@ -1524,24 +1492,11 @@ class MyTable extends React.Component<Props, TableState> {
                 cell.p = p;
                 responsetable[row][col] = plainToClass(CellDetails, cell); //Convert the cell to an instance of the cell class.
             }
-        }*/
-        for (let row = 0; row < responsetable.length; row++) {
-            for (let col = 0; col < responsetable[0].length; col++) {
-                let cell = responsetable[row][col];
-                let p: TablePoint = plainToClass(TablePoint, cell.p);
-                cell.p = p;
-                responsetable[row][col] = plainToClass(CellDetails, cell); //Convert the cell to an instance of the cell class.
-            }
-            //responsetable[row] = plainToClass((CellDetails[]), responsetable[row]);
         }
-        //responsetable = plainToClass(CellDetails[][], responsetable);
-
-
         this.setState({ table: responsetable})
-        //this.setState({ table: responsetable as CellDetails[][] });
     }
 
-    private getTabBar(){
+    private getOutputPanelTabBar(){
         if (this.state.showoutput){
             return (
                 <div id="outputdiv">
@@ -1555,7 +1510,7 @@ class MyTable extends React.Component<Props, TableState> {
                         </Tabs>
                     </AppBar>
                     <div id="tabContentDiv">
-                        {this.getTabContent()}
+                        {this.getOutputPanelTabContent()}
                     </div>
                 </div>
 
@@ -1563,24 +1518,22 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
-    private getControlsTabBar(){
+    private getTopMenuTabBar(){
         return (
             <div >
                 <AppBar position="static" >
                     <Tabs id="tabbar" variant="scrollable" value={this.state.topmenutab} onChange={(e,v) => this.changeTab2(e,v)}>
-                        <Tab id="tab1" label="Create/Save Table" tabIndex={0} style={{minWidth:"20%"}}/>
-                        <Tab id="tab2" label="Import Table" tabIndex={1} style={{minWidth:"20%"}}/>
-                        <Tab id="tab3" label="Global Controls" tabIndex={2} style={{minWidth:"20%"}}/>
-                        <Tab id="tab4" label="Selected Cell Controls" tabIndex={3} style={{minWidth:"20%"}}/>
+                        <Tab id="toptab1" label="Create/Save Table" tabIndex={0} style={{minWidth:"20%"}}/>
+                        <Tab id="toptab2" label="Import Table" tabIndex={1} style={{minWidth:"20%"}}/>
+                        <Tab id="toptab3" label="Global Controls" tabIndex={2} style={{minWidth:"20%"}}/>
+                        <Tab id="toptab4" label="Selected Cell Controls" tabIndex={3} style={{minWidth:"20%"}}/>
                     </Tabs>
                 </AppBar>
                 <div id="controlTabContentDiv">
                     {this.getTopMenuTabContent()}
                 </div>
             </div>
-
         );
-
     }
 
     private getTopMenuTabContent(){
@@ -1607,11 +1560,11 @@ class MyTable extends React.Component<Props, TableState> {
                                             <ListItem>
                                                 <ListItemText primary="Save Current Table" />
                                                 <input value={this.state.currenttablename} className="tablesavetextbox" onChange={(e) => this.setState({ currenttablename: e.target.value })} type="text" />
-                                                <Button onClick={() => this.saveTable()}>Save</Button>
+                                                <Button onClick={() => this.requestSaveTable()}>Save</Button>
                                             </ListItem>
 
                                             <ListItem>
-                                                <Button onClick={() => this.getMyTables()}>Fetch My Tables</Button>
+                                                <Button onClick={() => this.requestMyTables()}>Fetch My Tables</Button>
                                             </ListItem>
                                             {
                                                 this.showMyTables()
@@ -1633,8 +1586,8 @@ class MyTable extends React.Component<Props, TableState> {
 
                                 <Divider component="li" variant="middle" />
                                 <ListItem>
-                                    <Button onClick={() => this.undo()}>Undo</Button>
-                                    <Button onClick={() => this.redo()}>Redo</Button>
+                                    <Button id="undobutton" onClick={() => this.undo()}>Undo</Button>
+                                    <Button id="redobutton" onClick={() => this.redo()}>Redo</Button>
                                 </ListItem>
                                 
                                 
@@ -1887,7 +1840,6 @@ class MyTable extends React.Component<Props, TableState> {
 
     private setTableStyle(style: number){
         this.addTableStateToUndoStack();
-
         //Clear the current style
         this.getAllCells().forEach(
             cell => {
@@ -1955,10 +1907,10 @@ class MyTable extends React.Component<Props, TableState> {
         return (
             <div className="adiv">
                 <div id={this.state.showoutput ? "topdiv": "topdivwide"}>
-                    {this.getControlsTabBar()}
+                    {this.getTopMenuTabBar()}
                 </div>
                 {this.drawTable()}
-                {this.getTabBar()}
+                {this.getOutputPanelTabBar()}
             </div>
         );
     }

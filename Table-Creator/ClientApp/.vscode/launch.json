@@ -12,5 +12,11 @@
             "url": "http://localhost:3001",
             "webRoot": "${workspaceFolder}"
         }
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach",
+            "port": 9229
+          }
     ]
 }

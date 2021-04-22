@@ -52,6 +52,7 @@ function moveTablePoint(p: TablePoint, dir: Direction): TablePoint {
           
 }
 
+
 enum Direction {
     Up,
     Down,

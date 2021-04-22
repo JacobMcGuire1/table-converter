@@ -150,7 +150,7 @@ class CellDetails {
     private fixLatexLinebreaks(input: string){
         let lines = input.split("\n");
         if (lines.length === 1) return input;
-        return "\\thead{" + lines.join("\\\\") + "}";
+        return "\\tabularCenterstack{" + this.csstextalign.charAt(0) + "}{" + lines.join("\\\\") + "}";
     }
     public getBotLeftOfMultiRowMerge(): [TablePoint, string] | undefined {
         let data = this.getLatexBackgroundColour() + this.fixLatexLinebreaks(escapeLatex(this.getData()));
@@ -270,19 +270,18 @@ class CellDetails {
         }
 
         html += 
-        `
-        padding: 5px;\
-        text-align: ${this.csstextalign};\
-        border-top: ${this.getcssborderstyle(0)};\
-        border-right: ${this.getcssborderstyle(1)};\
-        border-bottom: ${this.getcssborderstyle(2)};\
-        border-left: ${this.getcssborderstyle(3)};\
-        vertical-align: ${this.verticalalign};\
-        color: ${this.textcolour};\
-        '>
-        ${escapeHTML(this.getData())}\
-        </td >
-        `
+`padding: 5px;\
+text-align: ${this.csstextalign};\
+border-top: ${this.getcssborderstyle(0)};\
+border-right: ${this.getcssborderstyle(1)};\
+border-bottom: ${this.getcssborderstyle(2)};\
+border-left: ${this.getcssborderstyle(3)};\
+vertical-align: ${this.verticalalign};\
+color: ${this.textcolour};\
+'>
+${escapeHTML(this.getData())}\
+</td >
+`
 
         /*html += "padding: 5px;";
         html += "text-align: " + this.csstextalign + ";";
@@ -344,7 +343,6 @@ class CellDetails {
             return pink.mix(bcgnd).hex().toString();
         }
         return pink.toString();
-        //let new = normal(hexToRgb(pink), hexToRgb(bcgnd));
     }
     public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function) {
         let span = this.getMergeSpan();
