@@ -611,7 +611,7 @@ class MyTable extends React.Component<Props, TableState> {
             let col = i + 1;
             if (toplines[i] && !drawingline) {
                 drawingline = true;
-                topline = topline + "\\cline{" + col;
+                topline = topline + "\n\\cline{" + col;
             }
             if ((i === toplines.length - 1 && drawingline) || (drawingline && i !== toplines.length - 1 && !toplines[i + 1])) {
                 topline = topline + "-" + col + "}";
