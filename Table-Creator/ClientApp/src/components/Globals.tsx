@@ -4,6 +4,7 @@ export {escapeLatex, escapeHTML, TablePoint, moveTablePoint, Direction, BorderSt
 function escapeLatex(str: string){
     str = str.split("\\").join("\\textbackslash");
     str = str.split("&").join("\\&");
+    str = str.split("%").join("\\%");
     return str;
 }
 

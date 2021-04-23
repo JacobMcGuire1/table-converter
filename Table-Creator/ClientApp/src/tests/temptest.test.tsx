@@ -1,4 +1,5 @@
 import MyTable  from "../components/MyTable";
+import { parseLatexTable } from "../components/ParseLatexTable";
 import Props  from "../components/MyTable";
 import { render, fireEvent, waitForElement, findByText, getByText, waitForElementToBeRemoved, getByTestId } from "@testing-library/react";
 import * as React from 'react';
@@ -14,7 +15,6 @@ configure({ adapter: new Adapter() });
 
 test("Check AddRow", () => {
     //let mount = createMount();
-    debugger;
     let shallow = createShallow();
     let wrapper = shallow(<MyTable/>);
     let table = wrapper.instance() as MyTable;
@@ -31,3 +31,10 @@ test("Check AddRow", () => {
 
     
   });
+
+
+test("Simple table", () => {
+  
+
+  
+});

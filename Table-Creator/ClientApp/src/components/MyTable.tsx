@@ -1,6 +1,7 @@
 ﻿//import React from 'react'; // we need this to make JSX compile
 //import { findDOMNode } from 'react-dom';
 import {escapeLatex, escapeHTML, TablePoint, moveTablePoint, Direction, BorderStyle} from './Globals'
+import {parseLatexTable} from './ParseLatexTable'
 import * as React from 'react';
 import './MyTable.css';
 import { table } from 'table';
