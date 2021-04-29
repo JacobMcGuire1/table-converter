@@ -43,6 +43,7 @@ type TableState = {
     currenttablename: string;
     showoutput: boolean;
     topmenutab: number;
+    extrapadding: boolean;
 }
 
 
@@ -81,6 +82,7 @@ class MyTable extends React.Component<Props, TableState> {
             currenttablename: "A table",
             showoutput: true,
             topmenutab: 0,
+            extrapadding: true
         };
         this.testPopulateTable();
     }
@@ -936,6 +938,7 @@ class MyTable extends React.Component<Props, TableState> {
                                                         (cell: CellDetails) => this.deselectCell(cell),
                                                         (cell: CellDetails) => this.enableCellEdit(cell),
                                                         (cell: CellDetails) => this.disableCellEdit(cell),
+                                                        this.state.extrapadding,
                                                     )
                                                 
                                                 
@@ -1579,10 +1582,16 @@ class MyTable extends React.Component<Props, TableState> {
                                     <Button onClick={() => this.setState({showoutput: !this.state.showoutput})}>Toggle Output Menu</Button>
                                 </ListItem>
                                 <Divider component="li" variant="middle" />
+                                
 
                                 <ListItem>
                                     <ListItemText primary={"Rows: " + this.state.table.length} />
                                     <ListItemText primary={"Cols: " + this.state.table[0].length} />
+                                </ListItem>
+
+                                <ListItem>
+                                    <ListItemText primary="Show Bonus Padding"/>
+                                    <Checkbox checked={this.state.extrapadding} onChange={() => this.setState({extrapadding: !this.state.extrapadding})}/>
                                 </ListItem>
 
                                 <Divider component="li" variant="middle" />

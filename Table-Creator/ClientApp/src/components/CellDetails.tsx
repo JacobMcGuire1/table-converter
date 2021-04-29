@@ -97,9 +97,7 @@ class CellDetails {
     public getData(): string {
         return this.data;
     }
-    //Needs to modify merge list too.
-    //What if merge root leaves table?
-    //What if moved on top of a merge?
+
     public move(dir: Direction): TablePoint[]{
         if (this.isMergeRoot()) this.mergeroot = moveTablePoint(this.mergeroot!, dir);
         this.p = moveTablePoint(this.p, dir);
@@ -344,7 +342,7 @@ ${escapeHTML(this.getData())}\
         }
         return pink.toString();
     }
-    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function) {
+    public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, extrapadding: boolean) {
         let span = this.getMergeSpan();
         if (this.isVisible()) {
             return (
@@ -359,7 +357,7 @@ ${escapeHTML(this.getData())}\
                         borderBottom: this.getcssborderstyle(2), 
                         borderLeft: this.getcssborderstyle(3), 
                         background: this.isSelected() ? this.combineColours() : this.getHexBackgroundColour(),
-                        padding: "5px",
+                        padding: extrapadding ? "5px" : "0px",
                         verticalAlign: this.verticalalign
                     }}
                         onDoubleClick={(e) => enableEditMode(this)}
