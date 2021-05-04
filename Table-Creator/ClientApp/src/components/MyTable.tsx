@@ -1632,23 +1632,24 @@ class MyTable extends React.Component<Props, TableState> {
 
                         <div className="minimenudiv">
                             <List dense={true}>
-                                <ListItem divider>
-                                    <b>Global Controls</b>
-                                </ListItem>
                                 
                                 <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
                                 <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
-                                <ListItem>
-                                    <ListItemText primary="Prefill Cells"/>
-                                    <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
-                                </ListItem>
 
                                 <Divider component="li" variant="middle" />
-                                <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
-                                <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
+
+                                <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
+                                <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Columns</ListItem>
+                                
                                 
                             </List>
 
+                        </div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
+                                <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
+                            </List>
                         </div>
                     </div>
                     
@@ -1801,9 +1802,7 @@ class MyTable extends React.Component<Props, TableState> {
                                     <b>Selected Cell Controls</b>
                                 </ListItem>
 
-                                <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
-                                <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
-                                <Divider component="li" variant="middle" />
+                        
 
 
 
