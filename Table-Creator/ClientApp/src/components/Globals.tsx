@@ -1,6 +1,6 @@
 export {escapeLatex, escapeHTML, TablePoint, moveTablePoint, Direction, BorderStyle}
 
-
+//Remove Latex tags from string
 function escapeLatex(str: string){
     str = str.split("\\").join("\\textbackslash");
     str = str.split("&").join("\\&");
@@ -8,11 +8,14 @@ function escapeLatex(str: string){
     return str;
 }
 
-//Stolen 
+//Remove html tags from string
+//May be sourced from here? https://stackoverflow.com/questions/1787322/htmlspecialchars-equivalent-in-javascript
 function escapeHTML(str: string) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
+//Class for a point used in the table.
+//Each cell has one.
 class TablePoint {
     public readonly row: number;
     public readonly col: number;

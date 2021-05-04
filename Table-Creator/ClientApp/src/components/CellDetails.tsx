@@ -52,14 +52,17 @@ class CellDetails {
     public getMergeChildren() {
         return this.mergechildren;
     }
+    //Add a child to the merge
     public addMergeChild(child: TablePoint){
         this.mergechildren.push(child);
     }
+    //Reset merge properties
     public unMerge() {
         this.mergeroot = undefined;
         this.mergechildren = [];
         this.hidden = false;
     }
+    //Add to another merge
     public mergeAsChild(root: TablePoint) {
         this.mergeroot = root;
         this.mergechildren = [];
@@ -97,7 +100,7 @@ class CellDetails {
     public getData(): string {
         return this.data;
     }
-
+    //Move the table point, and parent + children if merged
     public move(dir: Direction): TablePoint[]{
         if (this.isMergeRoot()) this.mergeroot = moveTablePoint(this.mergeroot!, dir);
         this.p = moveTablePoint(this.p, dir);
@@ -107,6 +110,7 @@ class CellDetails {
         
         return [];
     }
+    //Gets size of this table's merge based on children.
     public getMergeSize(): number[] {
         if (this.mergechildren === []) return [-1, -1];
         let mincol = this.p.col;
@@ -139,6 +143,7 @@ class CellDetails {
         if (this.textcolour === "") return "";
         return "\\color[HTML]{" + this.textcolour.replace('#', '').toUpperCase() + "}";
     }
+    //Get bottom left of merge.
     private getBotLeftPoint(): TablePoint{
         let child_ps  = this.mergechildren;
         let row = Math.max(...child_ps.map(child => child.row));
@@ -150,6 +155,7 @@ class CellDetails {
         if (lines.length === 1) return input;
         return "\\tabularCenterstack{" + this.csstextalign.charAt(0) + "}{" + lines.join("\\\\") + "}";
     }
+    //Gets latex info for bottom left cell of merge
     public getBotLeftOfMultiRowMerge(): [TablePoint, string] | undefined {
         let data = this.getLatexBackgroundColour() + this.fixLatexLinebreaks(escapeLatex(this.getData()));
         let borders = this.borderstyles.map(style => style !== BorderStyle.None);
@@ -174,6 +180,7 @@ class CellDetails {
         }  
         return undefined;
     }
+    //Convert to latex
     public getLatex(leftmergecells: any): string {
         let data = this.getLatexBackgroundColour() + this.fixLatexLinebreaks(escapeLatex(this.getData()));
         let borders = this.borderstyles.map(style => style !== BorderStyle.None);
@@ -209,6 +216,7 @@ class CellDetails {
         }     
         return "";
     }
+    //Check each merge child to see the lines at bottom of merge
     public getBottomLines(): TablePoint[] {
         if (this.isMergeRoot()) {
             let bottom = this.p.row;
@@ -241,6 +249,7 @@ class CellDetails {
     public getHexBackgroundColour() : string {
         return this.backgroundcolour;
     }
+    //Convert to html output
     public getHTML(): string {
         if (this.mergeroot !== undefined && !this.isMergeRoot()) return ""; //Return nothing if this cell is hidden by being a child of a merge.
 
@@ -342,6 +351,8 @@ ${escapeHTML(this.getData())}\
         }
         return pink.toString();
     }
+    //Output the cell to the main table.
+    //This is the table the user interacts with.
     public draw(xpixel: number, ypixel: number, colwidths: number[], rowheights: number[], horizontaldividersize: number, verticaldividersize: number, changeData: Function, selectCell: Function, deSelectCell: Function, enableEditMode: Function, disableEditMode: Function, extrapadding: boolean) {
         let span = this.getMergeSpan();
         if (this.isVisible()) {

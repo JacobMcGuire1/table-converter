@@ -124,24 +124,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
         return colarray;
     }
-    /*private getColWidth(col: number): number { //Doesn't account for merged cells.
-        let colarray = this.getCol(col);
-        let widths = colarray.map(x => x.width);
-        let largestwidth = widths.reduce(function (a, b) {
-            return Math.max(a, b);
-        });
-        if (this.state.mincellwidth > largestwidth) return this.state.mincellwidth;
-        return largestwidth;
-    }
-    private getRowHeight(row: number): number { //Doesn't account for merged cells.
-        let rowarray = this.getRow(row);
-        let heights = rowarray.map(x => x.height);
-        let largestheight = heights.reduce(function (a, b) {
-            return Math.max(a, b);
-        });
-        if (this.state.mincellheight > largestheight) return this.state.mincellheight;
-        return largestheight;
-    }*/
+
     //Returns the selected cells as a list.
     private getSelectedCells() {
         let selectedcells = [];
@@ -166,7 +149,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
         return cells;
     }
-
+    //Get selected cells from specific table
     private getSelectedCellsFromTable(table: CellDetails[][]) {
         let rows = table.length;
         let cols = table[0].length;
@@ -229,7 +212,6 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
-    //TODO: FIX UNDO
     private modifyCellData(cell: CellDetails, data: string) {
         this.addTableStateToUndoStack();
         cell.setData(data);
@@ -251,7 +233,7 @@ class MyTable extends React.Component<Props, TableState> {
         let sel = document.getSelection();
         sel!.removeAllRanges();
     }
-
+     //Copies the latex packages to the clipboard.
     private copyLatexPackages(): void {
         let copyText = this.latexpackagesref.current!;
         copyText.select();
@@ -260,7 +242,7 @@ class MyTable extends React.Component<Props, TableState> {
         let sel = document.getSelection();
         sel!.removeAllRanges();
     }
-
+    //Copy HTML output to clipboard
     private copyHTML(): void {
         let copyText = this.htmltextarearef.current!;
         copyText.select();
@@ -269,9 +251,8 @@ class MyTable extends React.Component<Props, TableState> {
         let sel = document.getSelection();
         sel!.removeAllRanges();
     }
-
+    //Copy Text output to clipboard
     private copyText(): void {
-        //let copyText = this.texttextarearef.current!;
         let copyText = document.getElementById("texttextarea")! as HTMLTextAreaElement;
         copyText.className = "show";
         copyText.select();
@@ -301,7 +282,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
-
+    //Set Selected cell text colour
     private setCellTextColours() {
         this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
@@ -317,7 +298,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
-
+    //Set Selected cell border colour
     private setCellBorderColours() {
         this.addTableStateToUndoStack();
         let newtable = cloneDeep(this.state.table);
@@ -338,6 +319,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: newtable });
     }
 
+    //User selects which borders they want to modify
     private selectBorderToModify(border: number) {
         let bordermodify: [boolean, boolean, boolean, boolean];
         bordermodify = [...this.state.bordermodify];
@@ -384,11 +366,6 @@ class MyTable extends React.Component<Props, TableState> {
         }
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
-    }
-
-    private openTextAlignment(e : any) {
-        let popover = document.getElementById("alignmentpopover")!;
-        (popover as any).anchorEl = e.currentTarget;
     }
 
     //Merges the currently selected cells.
@@ -519,7 +496,7 @@ class MyTable extends React.Component<Props, TableState> {
         let newtable = cloneDeep(this.state.table);
         this.setState({ table: newtable });
     }
-
+    //Sets CSS vertical text alignment for the selected cells.
     private setVerticalTextAlignment(alignment: string) {
         this.addTableStateToUndoStack();
         let cells = this.getSelectedCells();
@@ -545,7 +522,7 @@ class MyTable extends React.Component<Props, TableState> {
 
         //Create temporary array to show where horizontal lines are. Initialised with false.
         let horlines = Array(this.getRowCount()).fill(undefined).map(() => Array(this.getColCount()).fill(false));
-        //let leftmergecells = {};
+        //Calculate Bottom Left of merges
         let leftmergecells: { [key: string]: number; } = {};
         for (let row = 0; row < this.getRowCount(); row++) {
             this.state.table[row].forEach(
@@ -605,7 +582,7 @@ class MyTable extends React.Component<Props, TableState> {
             latextable.push(rowlatex);
         }
 
-        //The folling code calculates the top line.
+        //The following code calculates the top line.
         let toprow = this.state.table[0];
         let toplines = toprow.map(cell => cell.borderstyles[0] !== "none");
         let drawingline = false;
@@ -727,7 +704,7 @@ class MyTable extends React.Component<Props, TableState> {
         );
     }
 
-
+    //Copy CSV output data
     private copyAsCSVToClipboard(){
         let copyText = document.getElementById("csvtextarea")! as HTMLTextAreaElement;
         copyText.className = "show";
@@ -808,6 +785,7 @@ class MyTable extends React.Component<Props, TableState> {
             );
         }
     }
+    //Select an individual cell with click
     private selectWithClick(coords: [number, number]) {
         let svg = this.svgref.current!;
         let rect = svg.getBoundingClientRect();
@@ -874,6 +852,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: newtable }, () => this.convertToPNG());
     }
 
+    //Convert current table to PNG
     private convertToPNG() {
         let svg = this.svgref.current!;
         let svgData = new XMLSerializer().serializeToString(svg);
@@ -889,17 +868,8 @@ class MyTable extends React.Component<Props, TableState> {
 
         let w = window.open("")!;
         w.document.write(img.outerHTML);
-
-        //window.open(htmlcanvas.toDataURL("image/png"));
-
-        //let a = document.getElementById("dlbutton")!;
-        //a.setAttribute("href", "data:application/octet-stream;base64,");
-
-        //img.onload = function () {
-        //    ctx.drawImage(img, 0, 0);
-        //    console.log(htmlcanvas.toDataURL("image/png"));
-        //};
     }
+    //unused
     private handleKeyPress(e: any) {
         console.log(e.key);
         this.selectAllCells();
@@ -959,7 +929,7 @@ class MyTable extends React.Component<Props, TableState> {
     }
 
     
-
+    //Ensure current colour is correct at start.
     componentDidMount() {
         let picker = this.colourpickerref.current;
         if (picker) picker.value = this.chosencolour;
@@ -968,7 +938,7 @@ class MyTable extends React.Component<Props, TableState> {
     componentDidUpdate(prevProps: Object, prevState: TableState ){
         //statestack.push(prevState);
     }
-
+    //When an action is performed, add to undo stack
     private addTableStateToUndoStack(){
         redotablestack = [];
         let table = cloneDeep(this.state.table);
@@ -976,6 +946,7 @@ class MyTable extends React.Component<Props, TableState> {
         tablestack.push(table);
     }
 
+    //Revert to last table on undo stack
     private undo(){
         let prevtable = tablestack.pop();
         if(prevtable !== undefined){
@@ -986,6 +957,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Redo the last undo
     private redo(){
         let newtable = redotablestack.pop();
         if(newtable !== undefined){
@@ -996,20 +968,24 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Deselect all cells when clicked outside of table
     private bigClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         if (this.tableref.current !== null && !this.tableref.current.contains(e.target as Node)){
             this.deselectAllCells();
         }
     }
 
+    //Change Right panel tab
     private changeTab(e: React.ChangeEvent<{}>, v: any) {
         this.setState({ tab: (v as number) });
     }
 
+    //Change top panel tab
     private changeTab2(e: React.ChangeEvent<{}>, v: any) {
         this.setState({ topmenutab: (v as number) });
     }
 
+    //Content of right tab panel
     private getOutputPanelTabContent() {
         switch (this.state.tab) {
             case 1:
@@ -1051,6 +1027,7 @@ class MyTable extends React.Component<Props, TableState> {
         }             
     }
 
+    //Uploads a table to the server for image table extraction
     private async UploadTable() {
         let fileupload = document.getElementById("file") as HTMLInputElement;
         let formData = new FormData();
@@ -1079,6 +1056,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Create table of specified dimensions
     private createNewTable(rows: number, cols: number, keepdata: boolean){
         if (rows <= 30 && cols <= 30){
             this.addTableStateToUndoStack();
@@ -1111,6 +1089,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.importTableFromArray(this.parseCSV(csv));
     }
 
+    //Converts CSV string to new table
     private parseCSV(csv: string): string[][]{
         let results = Papa.parse(csv, {header: false});
         //TODO: Missing header info ATM.
@@ -1137,6 +1116,7 @@ class MyTable extends React.Component<Props, TableState> {
         return arr;
     }
 
+    //Converts an array of string to be the current table
     private importTableFromArray(array: string[][]){
         let rows = array.length;
         let cols = Math.max(...array.map(row => row.length)); //cols is lenght of longest row.
@@ -1158,6 +1138,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Set data of all selected cells
     private setSelectedCellData(data: string){
         this.addTableStateToUndoStack();
         let selectedcells = this.getSelectedCells();
@@ -1168,6 +1149,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState(this.state);
     }
 
+    //Save table to server db
     private async requestSaveTable(){
         let formData = new FormData();
         formData.append("username", this.state.username);
@@ -1188,7 +1170,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.requestMyTables();
     }
 
-
+    //Delete table from server db
     private async requestDeleteTable(id: string) {
         let formData = new FormData();
         formData.append("username", this.state.username);
@@ -1208,6 +1190,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.requestMyTables();
     }
 
+    //Move all selected cells in this direction if possible
     private moveSelectedCells(dir: Direction){
         this.addTableStateToUndoStack();
         let newtable = cloneDeep(this.state.table);
@@ -1254,6 +1237,7 @@ class MyTable extends React.Component<Props, TableState> {
 
 
     //Returns the merge root if that merge can't be moved.
+    //Performs bonus checks to ensure merged cells aren't being moved wrongly
     private moveSelectedCellsLoopContent(selectedcells: CellDetails[], i: number, newtable: CellDetails[][], dir: Direction): TablePoint | undefined{
         let cell = selectedcells[i];
         if(!(cell.isMergeChild() || cell.isMergeRoot)) {
@@ -1294,8 +1278,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
-    //Needs to understand merged cells?
-    //Maybe make method to fix merges after table changes.
+    //Delete selected rows
     private deleteRowHandler(){
         this.addTableStateToUndoStack();
         let newtable = cloneDeep(this.state.table);
@@ -1311,6 +1294,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({table: newtable});
     }
 
+    //Delete a row
     private deleteRow(row: number, table: CellDetails[][]){
         //Move each cell below up.
         for (let i = row + 1; i < table.length; i++){
@@ -1327,6 +1311,7 @@ class MyTable extends React.Component<Props, TableState> {
         return table;
     }
 
+    //Delete selected cols
     private deleteColHandler(){
         this.addTableStateToUndoStack();
         let newtable = cloneDeep(this.state.table);
@@ -1342,6 +1327,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({table: newtable});
     }
 
+    //Delete a col
     private deleteCol(col: number, table: CellDetails[][]){
         table.forEach(
             (row) => {
@@ -1353,6 +1339,7 @@ class MyTable extends React.Component<Props, TableState> {
         return table;
     }
 
+    //Change form value of chosen rows/cols
     private setTableFormValues(rows: number, cols: number){
         if (rows > 30) rows = 30;
         if (rows < 1) rows = 1;
@@ -1361,6 +1348,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({newtableform: [rows, cols]});
     }
 
+    //Returns false if point is outdside of table dimensions
     private checkIfPointInTable(p: TablePoint, table: CellDetails[][]): boolean{
         return (
             p.row >= 0 &&
@@ -1370,6 +1358,9 @@ class MyTable extends React.Component<Props, TableState> {
         )
     }
 
+    //Gets missing points in rectangle.
+
+    //Unused
     private getMissingPoints(points: TablePoint[]): TablePoint[]{
         let rows = points.map(p => p.row);
         let cols = points.map(p => p.col);
@@ -1388,6 +1379,8 @@ class MyTable extends React.Component<Props, TableState> {
         return ouput.map(str => new TablePoint(undefined, undefined, str));
     }
 
+    //Fixes broken merges.
+    //Fills missing points in merge or destroys the merge if necessary.
     private fixMerges(table: CellDetails[][]) {
         let mergeroots: CellDetails[] = [];
         for (let row = 0; row < table.length; row++) {
@@ -1432,7 +1425,7 @@ class MyTable extends React.Component<Props, TableState> {
         return table;
     }
 
-
+    //Request user's tables from server db
     private async requestMyTables(){
         let formData = new FormData();
         formData.append("username", this.state.username);
@@ -1458,6 +1451,7 @@ class MyTable extends React.Component<Props, TableState> {
         
     }
 
+    //Display user's tables in a list.
     private showMyTables(){
         return (
             <List>
@@ -1475,6 +1469,7 @@ class MyTable extends React.Component<Props, TableState> {
         );
     }
 
+    //Request a specific table using the ID (returns JSON representation)
     private async requestTable(tableid: string){
         let formData = new FormData();
         formData.append("username", this.state.username);
@@ -1500,6 +1495,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({ table: responsetable})
     }
 
+    //Output panel
     private getOutputPanelTabBar(){
         if (this.state.showoutput){
             return (
@@ -1540,6 +1536,7 @@ class MyTable extends React.Component<Props, TableState> {
         );
     }
 
+    //The buttons of current tab at top of screen
     private getTopMenuTabContent(){
         switch(this.state.topmenutab) {
             case 0:
@@ -1851,6 +1848,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Sets to one of the preset styles
     private setTableStyle(style: number){
         this.addTableStateToUndoStack();
         //Clear the current style
@@ -1876,6 +1874,7 @@ class MyTable extends React.Component<Props, TableState> {
         this.setState({table: newtable});
     }
 
+    //Simple style
     private setSimpleLinesStyle(){
         if (this.state.table.length > 1 && this.state.table[0].length > 1){
             let row0 = this.getRow(0);
@@ -1904,6 +1903,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Another style
     private setAlternateShadingStyle() {
         for (let i = 1; i < this.state.table.length; i = i + 2){
             console.log("test");
@@ -1916,6 +1916,7 @@ class MyTable extends React.Component<Props, TableState> {
         }
     }
 
+    //Renders the entire application
     public render() {
         return (
             <div className="adiv">
