@@ -1529,8 +1529,8 @@ class MyTable extends React.Component<Props, TableState> {
                     <Tabs id="tabbar" variant="scrollable" value={this.state.topmenutab} onChange={(e,v) => this.changeTab2(e,v)}>
                         <Tab id="toptab1" label="Create/Save Table" tabIndex={0} style={{minWidth:"20%"}}/>
                         <Tab id="toptab2" label="Import Table" tabIndex={1} style={{minWidth:"20%"}}/>
-                        <Tab id="toptab3" label="Global Controls" tabIndex={2} style={{minWidth:"20%"}}/>
-                        <Tab id="toptab4" label="Selected Cell Controls" tabIndex={3} style={{minWidth:"20%"}}/>
+                        <Tab id="toptab3" label="Cell Styling" tabIndex={2} style={{minWidth:"20%"}}/>
+                        <Tab id="toptab4" label="Modify Cells" tabIndex={3} style={{minWidth:"20%"}}/>
                     </Tabs>
                 </AppBar>
                 <div id="controlTabContentDiv">
@@ -1629,6 +1629,27 @@ class MyTable extends React.Component<Props, TableState> {
                             </List>
 
                         </div>
+
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Global Controls</b>
+                                </ListItem>
+                                
+                                <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
+                                <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
+                                <ListItem>
+                                    <ListItemText primary="Prefill Cells"/>
+                                    <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
+                                </ListItem>
+
+                                <Divider component="li" variant="middle" />
+                                <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
+                                <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
+                                
+                            </List>
+
+                        </div>
                     </div>
                     
 
@@ -1658,26 +1679,7 @@ class MyTable extends React.Component<Props, TableState> {
             case 2:
                 return (
                     <div>
-                        <div className="minimenudiv">
-                            <List dense={true}>
-                                <ListItem divider>
-                                    <b>Global Controls</b>
-                                </ListItem>
-                                
-                                <ListItem id="addrowbutton" button onClick={() => this.addRow()}>Add Row</ListItem>
-                                <ListItem id="addcolbutton" button onClick={() => this.addCol()}>Add Column</ListItem>
-                                <ListItem>
-                                    <ListItemText primary="Prefill Cells"/>
-                                    <Checkbox checked={this.state.prefillcellscheck} onChange={() => this.setState({prefillcellscheck: !this.state.prefillcellscheck})}/>
-                                </ListItem>
-
-                                <Divider component="li" variant="middle" />
-                                <ListItem button onClick={() => this.selectAllCells()}>Select All</ListItem>
-                                <ListItem button onClick={() => this.deselectAllCells()}>Select None</ListItem>
-                                
-                            </List>
-
-                        </div>
+                        
                         <div className="minimenudiv">
                             <List dense={true}>
                                 <ListItem divider>
@@ -1695,62 +1697,6 @@ class MyTable extends React.Component<Props, TableState> {
                             </List>
                         </div>
 
-                    </div>
-                    
-
-                );
-            case 3:
-                return (
-                    <div>
-                        <div className="minimenudiv">
-                            <List dense={true}>
-                                <ListItem divider>
-                                    <b>Selected Cell Controls</b>
-                                </ListItem>
-
-                                <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
-                                <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
-                                <Divider component="li" variant="middle" />
-
-
-
-                                <ListItem >
-                                    <div>
-                                        <input style={{width: "100px"}} type="text" id="celltextinput" name="celltextinput" value={this.state.changedatafield} onChange={(e) => this.setState({changedatafield: e.target.value})}/>
-                                        <Button onClick={() => this.setSelectedCellData(this.state.changedatafield)}>Set Data</Button>
-                                    </div>
-                                </ListItem>
-
-                                <ListItem button onClick={() => this.setSelectedCellData("")}>
-                                    <ListItemText primary="Clear Data"/>
-                                </ListItem>
-                            </List>
-                        </div>
-                        <div className="minimenudiv">
-                            <ListItem divider>
-                                <b>Merge/Move Cells</b>
-                            </ListItem>
-                            <List dense={true}>
-                                <ListItem id="mergebutton" button onClick={() => this.mergeCells()}>
-                                    <ListItemText primary="Merge"/>
-                                </ListItem>
-                                <ListItem button onClick={() => this.splitCells()}>
-                                    <ListItemText primary="Split"/>
-                                </ListItem>
-                                <Divider component="li" variant="middle" />
-                                <ListItem>
-                                    <ListItemText primary="Move Selected Cells"/>
-                                </ListItem>
-                                <ListItem>
-                                    <Button className="smallButton" size="small" id="movecellsupbutton" onClick={() => this.moveSelectedCells(Direction.Up)}>Up</Button>
-                                    <Button className="smallButton" size="small" id="movecellsdownbutton" onClick={() => this.moveSelectedCells(Direction.Down)}>Down</Button>
-                                    <Button className="smallButton" size="small" id="movecellsleftbutton" onClick={() => this.moveSelectedCells(Direction.Left)}>Left</Button>
-                                    <Button className="smallButton" size="small" id="movecellsrightbutton" onClick={() => this.moveSelectedCells(Direction.Right)}>Right</Button>
-                                </ListItem>
-
-
-                            </List>
-                        </div>
                         <div className="minimenudiv">
                             <List dense={true}>
                                 <ListItem divider>
@@ -1841,6 +1787,64 @@ class MyTable extends React.Component<Props, TableState> {
 
                             </List>
                         </div>
+
+                    </div>
+                    
+
+                );
+            case 3:
+                return (
+                    <div>
+                        <div className="minimenudiv">
+                            <List dense={true}>
+                                <ListItem divider>
+                                    <b>Selected Cell Controls</b>
+                                </ListItem>
+
+                                <ListItem id="deleterowbutton" button onClick={() => this.deleteRowHandler()}>Delete Selected Rows</ListItem>
+                                <ListItem id="deletecolbutton" button onClick={() => this.deleteColHandler()}>Delete Selected Cols</ListItem>
+                                <Divider component="li" variant="middle" />
+
+
+
+                                <ListItem >
+                                    <div>
+                                        <input style={{width: "100px"}} type="text" id="celltextinput" name="celltextinput" value={this.state.changedatafield} onChange={(e) => this.setState({changedatafield: e.target.value})}/>
+                                        <Button onClick={() => this.setSelectedCellData(this.state.changedatafield)}>Set Data</Button>
+                                    </div>
+                                </ListItem>
+
+                                <ListItem button onClick={() => this.setSelectedCellData("")}>
+                                    <ListItemText primary="Clear Data"/>
+                                </ListItem>
+                            </List>
+                        </div>
+                        <div className="minimenudiv">
+                            <ListItem divider>
+                                <b>Merge/Move Cells</b>
+                            </ListItem>
+                            <List dense={true}>
+                                <ListItem id="mergebutton" button onClick={() => this.mergeCells()}>
+                                    <ListItemText primary="Merge"/>
+                                </ListItem>
+                                <ListItem button onClick={() => this.splitCells()}>
+                                    <ListItemText primary="Split"/>
+                                </ListItem>
+                                <Divider component="li" variant="middle" />
+                                <ListItem>
+                                    <ListItemText primary="Move Selected Cells"/>
+                                </ListItem>
+                                <ListItem>
+                                    <Button className="smallButton" size="small" id="movecellsupbutton" onClick={() => this.moveSelectedCells(Direction.Up)}>Up</Button>
+                                    <Button className="smallButton" size="small" id="movecellsdownbutton" onClick={() => this.moveSelectedCells(Direction.Down)}>Down</Button>
+                                    <Button className="smallButton" size="small" id="movecellsleftbutton" onClick={() => this.moveSelectedCells(Direction.Left)}>Left</Button>
+                                    <Button className="smallButton" size="small" id="movecellsrightbutton" onClick={() => this.moveSelectedCells(Direction.Right)}>Right</Button>
+                                </ListItem>
+
+
+                            </List>
+                        </div>
+                        
                     </div>
 
                 );
